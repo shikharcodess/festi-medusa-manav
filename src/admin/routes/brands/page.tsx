@@ -10,26 +10,26 @@ const BrandsPage = () => {
   const handleSyncClick = async () => {
     try {
       setProgress("Starting product sync...");
-      var response = await fetch("/sync", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          action: "syncProducts", // specify the action type here
-        }),
-      });
+      // var response = await fetch("/sync", {
+      //   method: "POST",
+      //   headers: {
+      //     "Content-Type": "application/json",
+      //   },
+      //   body: JSON.stringify({
+      //     action: "syncProducts", // specify the action type here
+      //   }),
+      // });
 
-      const result = await response.json();
-      if (response.status == 200) {
-        setProgress(
-          "Products Sync complete, " +
-            result.message.Items.length +
-            " items synced"
-        );
-      } else {
-        setProgress("Products Sync info: " + result.error);
-      }
+      // const result = await response.json();
+      // if (response.status == 200) {
+      //   setProgress(
+      //     "Products Sync complete, " +
+      //       result.message.Items.length +
+      //       " items synced"
+      //   );
+      // } else {
+      //   setProgress("Products Sync info: " + result.error);
+      // }
 
       setProgress("Products synced. Syncing orders...");
 

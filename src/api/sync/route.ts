@@ -30,7 +30,7 @@ export async function POST(
       const message = await syncService.syncProducts();
       res.status(200).json({ message });
     } else if (action === "syncOrders") {
-      const message = await syncService.syncOrders();
+      const message = await syncService.createOrder();
       res.status(200).json({ message });
     } else {
       res.status(400).json({ error: "Invalid action specified." });
