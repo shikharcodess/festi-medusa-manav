@@ -25,4 +25,7 @@ module.exports = defineConfig({
       resolve: "./src/modules/sync-service",
     },
   ],
+  admin: {
+    backendUrl: process.env.MEDUSA_BACKEND_URL || "http://localhost:9000",
+  },
 });
