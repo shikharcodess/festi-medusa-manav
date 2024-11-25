@@ -6,6 +6,7 @@ import {
 import {
   IProductModuleService,
   CreateProductDTO,
+  OrderDTO,
 } from "@medusajs/framework/types";
 import { container } from "@medusajs/framework";
 const BASE_URL = "http://festi.vary.rent:1331/test/1/";
@@ -130,6 +131,53 @@ class SyncService extends MedusaService({}) {
     }
 
     return `${items.length} Products and variants synced successfully.`;
+  }
+
+  async syncOrderToVary(data: OrderDTO): Promise<any> {
+    // Initialize required Medusa services
+    const customerService = container.resolve(Modules.CUSTOMER);
+
+    const customer = await customerService.retrieveCustomer(data.customer_id);
+    data.items;
+
+    const basketData = {
+      idCompany: 1,
+      dStartDate: new Date().toISOString().slice(0, 10).replace(/-/g, ""),
+      dEndDate: new Date().toISOString().slice(0, 10).replace(/-/g, ""),
+      nStatus: 2,
+      sNote: "Order created in Medusa",
+      sCodeLang: "EN",
+      sName: "Anonymous srl",
+      sFirstName: customer.first_name,
+      sLastName: customer.last_name,
+      sEmail: customer.email,
+      BasketLines: data.items.map((item) => ({
+        nLineType: 1,
+        nQuantity: item.quantity,
+        sItemCode: item.variant_sku, // Use the SKU or item code if available
+        nUnitPrice: item.unit_price / 100, // Assuming unit price is in cents
+      })),
+    };
+    const token = await this.requestToken();
+    const basketResponse = await fetch(`${BASE_URL}/basket`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(basketData),
+    });
+    const d = await basketResponse.json();
+
+    if (!basketResponse.ok) {
+      const errorText = await basketResponse.text();
+      console.error("Failed to push order to Anonymous Basket:", errorText);
+      throw new Error("Failed to push order to Anonymous Basket");
+    } else {
+      console.log(d);
+    }
+
+    return `Order synced to VARY with basket ID: ${d.idBasket}`;
   }
 
   async createAndSyncOrder(): Promise<string> {
