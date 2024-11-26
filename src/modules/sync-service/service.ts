@@ -142,7 +142,9 @@ class SyncService extends MedusaService({}) {
     const customerService = container.resolve(Modules.CUSTOMER);
     const orderService = container.resolve(Modules.ORDER);
 
-    const order = await orderService.retrieveOrder(orderId);
+    const order = await orderService.retrieveOrder(orderId, {
+      relations: ["items"],
+    });
     const customer = await customerService.retrieveCustomer(order.customer_id);
 
     const basketData = {
@@ -181,8 +183,10 @@ class SyncService extends MedusaService({}) {
     } else {
       console.log(d);
     }
-
-    return `Order synced to VARY with basket ID: ${d.idBasket}`;
+    await orderService.updateOrders([
+      { id: order.id, metadata: { vary_basket_id: d.idBasket } },
+    ]);
+    return `${d.idBasket}`;
   }
 
   async createAndSyncOrder(): Promise<string> {
