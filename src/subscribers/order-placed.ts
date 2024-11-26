@@ -13,21 +13,13 @@ export default async function orderPlacedHandler({
   console.log("orderPlacedHandler data => ", data);
 
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER);
-
-  //   logger.info("Sending confirmation email...");
   logger.info(`data: ${data}`);
 
-  //   const syncService: SyncService = container.resolve(SYNC_MODULE);
-  //   const result = await syncService.syncOrder(data);
-  //   console.log("result: ", result);
-
-  //   await sendOrderConfirmationWorkflow(container).run({
-  //     input: {
-  //       id: data.id,
-  //     },
-  //   });
+  const syncService: SyncService = container.resolve(SYNC_MODULE);
+  const result = await syncService.syncOrderToVary(data.id);
+  console.log("result: ", result);
 }
 
 export const config: SubscriberConfig = {
-  event: `order.placed`,
+  event: "order.placed",
 };

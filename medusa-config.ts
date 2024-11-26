@@ -21,11 +21,25 @@ module.exports = defineConfig({
         redisUrl: process.env.REDIS_URL,
       },
     },
+    // {
+    //   resolve: "@medusajs/medusa/payment",
+    //   options: {
+    //     providers: [
+    //       {
+    //         resolve: "@medusajs/medusa/payment-stripe",
+    //         id: "stripe",
+    //         options: {
+    //           apiKey: process.env.STRIPE_API_KEY,
+    //         },
+    //       },
+    //     ],
+    //   },
+    // },
     {
       resolve: "./src/modules/sync-service",
     },
   ],
-  admin: {
-    backendUrl: process.env.MEDUSA_BACKEND_URL || "http://localhost:9000",
-  },
+  // admin: {
+  //   backendUrl: process.env.MEDUSA_BACKEND_URL || "http://127.0.0.1:9000",
+  // },
 });

@@ -133,12 +133,17 @@ class SyncService extends MedusaService({}) {
     return `${items.length} Products and variants synced successfully.`;
   }
 
-  async syncOrderToVary(data: OrderDTO): Promise<any> {
+  async syncOrderToVary(orderId: string): Promise<any> {
+    console.log(
+      "===================== syncing Order to vary ===================="
+    );
+
     // Initialize required Medusa services
     const customerService = container.resolve(Modules.CUSTOMER);
+    const orderService = container.resolve(Modules.ORDER);
 
-    const customer = await customerService.retrieveCustomer(data.customer_id);
-    data.items;
+    const order = await orderService.retrieveOrder(orderId);
+    const customer = await customerService.retrieveCustomer(order.customer_id);
 
     const basketData = {
       idCompany: 1,
@@ -151,7 +156,7 @@ class SyncService extends MedusaService({}) {
       sFirstName: customer.first_name,
       sLastName: customer.last_name,
       sEmail: customer.email,
-      BasketLines: data.items.map((item) => ({
+      BasketLines: order.items.map((item) => ({
         nLineType: 1,
         nQuantity: item.quantity,
         sItemCode: item.variant_sku, // Use the SKU or item code if available
