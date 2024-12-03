@@ -16,6 +16,7 @@ export default async function orderPlacedHandler({
 
   const syncService: SyncService = container.resolve(SYNC_MODULE);
   const result = await syncService.syncOrderToVary(data.id);
+
   console.log("result: ", result);
 }
 
