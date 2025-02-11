@@ -1,5 +1,5 @@
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework";
-// import SyncService from "src/modules/sync-service/service";
+// import SyncService from "../../modules/sync-service/service";
 
 // const syncService = new SyncService({});
 

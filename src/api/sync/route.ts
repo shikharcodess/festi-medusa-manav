@@ -1,8 +1,8 @@
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework";
 import { IProductModuleService } from "@medusajs/framework/types";
 import { Modules } from "@medusajs/framework/utils";
-import { SYNC_MODULE } from "src/modules/sync-service";
-import SyncService from "src/modules/sync-service/service";
+import { SYNC_MODULE } from "../../modules/sync-service";
+import SyncService from "../../modules/sync-service/service";
 
 interface SyncRequestBody {
   action: "syncProducts" | "syncOrders" | "syncCustomers";

@@ -1,7 +1,7 @@
 import { SubscriberArgs, type SubscriberConfig } from "@medusajs/framework";
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils";
-import { SYNC_MODULE } from "src/modules/sync-service";
-import SyncService from "src/modules/sync-service/service";
+import { SYNC_MODULE } from "../modules/sync-service";
+import SyncService from "../modules/sync-service/service";
 
 console.log("loading orderPlacedHandler subscriber");
 
