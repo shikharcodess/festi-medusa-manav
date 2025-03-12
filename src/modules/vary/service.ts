@@ -617,11 +617,12 @@ export default class VaryService {
         input: {
           products: [
             {
+              id: String(product.idItem),
+              external_id: String(product.sItemCode),
               title: product.sDescr_1,
               category_ids: medusaCategoryId ? [medusaCategoryId] : [],
               description: product.sDescrFull_1,
               handle: toHandle(product.sDescr_1),
-              weight: product.nWeight,
               status: ProductStatus.PUBLISHED,
               options: [
                 {
@@ -629,14 +630,16 @@ export default class VaryService {
                   values: [String(product.idItem)],
                 },
               ],
-
+              weight: product.nWeight,
+              length: product.nLength,
+              width: product.nWidth,
+              height: product.nWeight,
               variants: [
                 {
                   title: product.sDescr_1,
                   sku: product.sItemCode,
                   options: {
-                    Size: "item",
-                    Color: String(product.idItem),
+                    item: String(product.idItem),
                   },
                   prices: [
                     {
@@ -655,6 +658,10 @@ export default class VaryService {
                   width: product.nWidth,
                   height: product.nHeight,
                   metadata: {
+                    title_nl: product.sDescr_2,
+                    title_en: product.sDescr_3,
+                    description_nl: product.sDescrFull_2,
+                    description_en: product.sDescrFull_3,
                     diameter: product.nDiameter,
                     thickness: product.nThickness,
                     capacity: product.nCapacity,
