@@ -1,4 +1,6 @@
 import {
+  CreateCustomerDTO,
+  ICustomerModuleService,
   IOrderModuleService,
   IProductModuleService,
   ProductCategoryDTO,
@@ -7,7 +9,10 @@ import { VaryServiceOptions } from "./utils/types";
 import axios, { AxiosInstance } from "axios";
 import { container } from "@medusajs/framework";
 import { Modules, ProductStatus, toHandle } from "@medusajs/framework/utils";
-import { createProductsWorkflow } from "@medusajs/medusa/core-flows";
+import {
+  createProductsWorkflow,
+  createCustomerAccountWorkflow,
+} from "@medusajs/medusa/core-flows";
 
 enum VaryLog {
   WARNING,
@@ -244,6 +249,7 @@ export default class VaryService {
   private options_: VaryServiceOptions;
   private productService: IProductModuleService;
   private orderService: IOrderModuleService;
+  private customerService: ICustomerModuleService;
 
   private categories: InternalCategoryMapping[] = [];
 
@@ -252,6 +258,10 @@ export default class VaryService {
     this.setupAxiosClient();
     this.productService = container.resolve(Modules.PRODUCT);
     this.orderService = container.resolve(Modules.ORDER);
+    this.customerService = container.resolve(Modules.CUSTOMER);
+
+    let s: CreateCustomerDTO;
+    this.customerService.createCustomers({});
   }
 
   /**
@@ -696,4 +706,6 @@ export default class VaryService {
    * To Be Implemented!
    */
   async updateOrderOnVary() {}
+
+  async createNewCustomer() {}
 }
