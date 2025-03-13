@@ -698,7 +698,7 @@ export default class VaryService {
   }
 
   /**
-   * To Be Implemented!
+   * To Be Implemented! Will be done soon
    */
   async createOrderOnVary() {}
 
