@@ -39,7 +39,7 @@ module.exports = defineConfig({
     //   resolve: "./src/modules/sync-service",
     // },
     {
-      resolve: "./build/src/modules/vary",
+      resolve: "./modules/vary",
       options: {
         varyApiUrl: "http://festi.vary.rent:1331/test/1",
         varyUser: "maastery-test",
