@@ -6,8 +6,8 @@ import {
 } from "@medusajs/framework/types";
 import { Modules } from "@medusajs/framework/utils";
 import { createSalesChannelsWorkflow } from "@medusajs/medusa/core-flows";
-import { VARY_MODULES } from "src/modules/vary";
-import VaryService from "src/modules/vary/service";
+import { VARY_MODULES } from "./../modules/vary";
+import VaryService from "./../modules/vary/service";
 
 var syncRunning: boolean = false;
 
