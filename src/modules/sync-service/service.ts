@@ -34,6 +34,7 @@ class SyncService extends MedusaService({}) {
     super(container);
     this.varyToken = "";
   }
+
   async syncProducts(): Promise<string> {
     // Request token and fetch items from the source API
     const token = await this.requestToken();
