@@ -1,9 +1,12 @@
 import {
   CreateCustomerDTO,
+  CreateProductOptionDTO,
+  CreateProductOptionValueDTO,
   ICustomerModuleService,
   IOrderModuleService,
   IProductModuleService,
   ProductCategoryDTO,
+  ProductOptionDTO,
 } from "@medusajs/framework/types";
 import { VaryServiceOptions } from "./utils/types";
 import axios, { AxiosInstance } from "axios";
@@ -13,6 +16,8 @@ import {
   createProductsWorkflow,
   createCustomerAccountWorkflow,
   CreateProductsWorkflowInput,
+  createProductOptionsWorkflow,
+  CreateProductOptionsWorkflowInput,
 } from "@medusajs/medusa/core-flows";
 
 enum VaryLog {
@@ -40,6 +45,15 @@ export interface VaryProduct {
   tabSalePrice: {
     nPrice: number;
     idListPrice: number;
+  }[];
+  tabOptions: {
+    idOption: number;
+    sOptionCode: string;
+    bIsActive: boolean;
+    sDescr_1: string;
+    sDescr_2: string;
+    sDescr_3: string;
+    sValue: string;
   }[];
   nLength: number;
   nWidth: number;
@@ -151,9 +165,25 @@ export interface VaryOrder {
   BasketLines: VaryProduct[];
 }
 
+export interface VaryProductOption {
+  idOption: number;
+  sOptionCode: string;
+  bIsActiv: boolean;
+  sDescr_1: string;
+  sDescr_2: string;
+  sDescr_3: string;
+  bWithValue: boolean;
+  TabValue: string[];
+}
+
 interface InternalCategoryMapping {
   medusaId: string;
   idWebcat: number;
+}
+
+interface InternalOptionMapping {
+  idOption: number;
+  medusaId: string;
 }
 
 /**
@@ -253,7 +283,9 @@ export default class VaryService {
   private customerService_?: ICustomerModuleService;
 
   private internalCategoryMapping: InternalCategoryMapping[] = [];
+  private internalOptionMapping: InternalOptionMapping[] = [];
   private varyCategory: VaryCategory[] = [];
+  private varyOptions: VaryProductOption[] = [];
 
   private isServiceReady_: boolean = false;
   publicMetadata: Record<string, any> = {};
@@ -471,7 +503,7 @@ export default class VaryService {
         );
       }
       const response = await this.varyAxiosClient_.request({
-        url: `/item?nPageSize=100000&nPageNumber=1&bOnTheWeb=-1&sFormatDescrFull=TXT`,
+        url: `/item??WithOptions=1&nPageSize=100000&nPageNumber=1&sFormatDescrFull=TXT&?nPageSize=100&nPageNumber=1&bOnTheWeb=1&bWithSearchkeys=0&bWithOptions=1&bSHOnly=0&bWithSHinfo=0&bHided=false&bBlocked=false&sFormatDescrFull=TXT&bWithHTMLDescr=0&pWithExtandedInformation=0&bWithStkInfo=1&bWithMemo=1&bUncodes=true`,
         method: "GET",
       });
       if (response.status == 200) {
@@ -655,12 +687,23 @@ export default class VaryService {
           if (options?.createIfNotFound) {
             let newMedusaCategory: ProductCategoryDTO;
             if (options.data) {
+              var medusaParentCategoryId: string | null = null;
+              if (options.data.idParent != null && options.data.idParent != 0) {
+                const tempMapping = await this.getCategoryMapping(
+                  options.data.idParent,
+                  { createIfNotFound: true }
+                );
+                if (tempMapping) {
+                  medusaParentCategoryId = tempMapping.medusaId;
+                }
+              }
               newMedusaCategory =
                 await this.productService_.createProductCategories({
                   name: options?.data.sDescr_1,
                   description: options.data.sDescrFull_1,
                   rank: this.convertNSortOrder(String(options.data.nSortorder)),
                   handle: toHandle(options.data.sDescr_1),
+                  parent_category_id: medusaParentCategoryId,
                   metadata: {
                     idWebCat: options.data.idWebCat,
                     idParent: options.data.idParent,
@@ -685,6 +728,20 @@ export default class VaryService {
                 throw this.VaryServiceError("category not found on vary", {});
               }
 
+              var medusaParentCategoryId: string | null = null;
+              if (
+                cachedVaryCategory.idParent != null &&
+                cachedVaryCategory.idParent != 0
+              ) {
+                const tempMapping = await this.getCategoryMapping(
+                  cachedVaryCategory.idParent,
+                  { createIfNotFound: true }
+                );
+                if (tempMapping) {
+                  medusaParentCategoryId = tempMapping.medusaId;
+                }
+              }
+
               newMedusaCategory =
                 await this.productService_.createProductCategories({
                   name: cachedVaryCategory.sDescr_1,
@@ -693,6 +750,7 @@ export default class VaryService {
                     String(cachedVaryCategory.nSortorder)
                   ),
                   handle: toHandle(cachedVaryCategory.sDescr_1),
+                  parent_category_id: medusaParentCategoryId,
                   metadata: {
                     idWebCat: cachedVaryCategory.idWebCat,
                     idParent: cachedVaryCategory.idParent,
@@ -721,6 +779,181 @@ export default class VaryService {
       }
     } catch (error) {
       throw this.VaryServiceError("getCategoryMapping", error);
+    }
+  }
+
+  /**
+   * Fetches all product options from the Vary service.
+   *
+   * @returns {Promise<VaryProductOption[]>} A promise that resolves to an array of VaryProductOption objects.
+   * @throws {VaryServiceError} If the service is not ready or if there is an error during the request.
+   *
+   * @example
+   * const options = await fetchAllProductOptionsFromVary();
+   * console.log(options);
+   */
+  async fetchAllProductOptionsFromVary(): Promise<VaryProductOption[]> {
+    try {
+      if (!this.isServiceReady_) {
+        throw this.VaryServiceError(
+          "requires external dependencies are not set"
+        );
+      }
+      const response = await this.varyAxiosClient_.request({
+        url: `/item/option`,
+        method: "GET",
+      });
+      if (response.status == 200) {
+        const varyOptions: VaryProductOption[] = (response.data as any)
+          .Options as VaryProductOption[];
+        return varyOptions;
+      } else {
+        throw this.VaryServiceError(
+          "fetchAllProductOptionsFromVary",
+          response.data
+        );
+      }
+    } catch (error) {
+      throw this.VaryServiceError("fetchAllProductOptionsFromVary", error);
+    }
+  }
+
+  /**
+   * Retrieves the option mapping for a given option ID. If the option mapping is not found,
+   * it can optionally create a new mapping based on the provided options.
+   *
+   * @param idOption - The ID of the option to retrieve the mapping for.
+   * @param options - Optional parameters for creating a new mapping if not found.
+   * @param options.createIfNotFound - Whether to create a new mapping if not found. Defaults to false.
+   * @param options.data - Data for creating a new product option if not found.
+   *
+   * @returns A promise that resolves to the internal option mapping.
+   *
+   * @throws Will throw an error if the service is not ready or if the option is not found and createIfNotFound is false.
+   */
+  async getOptionMapping(
+    idOption: number,
+    options?: {
+      createIfNotFound: boolean | false;
+      data?: VaryProductOption;
+    }
+  ): Promise<InternalOptionMapping> {
+    try {
+      if (!this.isServiceReady_) {
+        throw this.VaryServiceError(
+          "requires external dependencies are not set"
+        );
+      }
+
+      const foundCategory = this.internalOptionMapping.find(
+        (item) => item.idOption === idOption
+      );
+      if (foundCategory) {
+        return foundCategory;
+      } else {
+        const categoryCount =
+          await this.productService_.listAndCountProductOptions(
+            {},
+            { select: ["id"], take: 1 }
+          );
+        const productOptionList = await this.productService_.listProductOptions(
+          {},
+          { select: ["id", "metadata"], skip: 0, take: categoryCount[1] }
+        );
+        const medusaProductOption = productOptionList.find(
+          (item) => (item.metadata?.idOption as number) === idOption
+        );
+
+        if (medusaProductOption) {
+          const newMapping: InternalOptionMapping = {
+            idOption: idOption,
+            medusaId: medusaProductOption.id,
+          };
+          this.internalOptionMapping.push(newMapping);
+          return newMapping;
+        } else {
+          if (options?.createIfNotFound) {
+            let newMedusaProductOption: ProductOptionDTO;
+            if (options.data) {
+              newMedusaProductOption =
+                await this.productService_.createProductOptions({
+                  title: options?.data.sDescr_1,
+                  values: options.data.TabValue,
+                  product_id: "",
+                });
+            } else {
+              var cachedVaryOptions = this.varyOptions.find(
+                (item) => item.idOption === idOption
+              );
+              if (!cachedVaryOptions) {
+                this.varyOptions = await this.fetchAllProductOptionsFromVary();
+                cachedVaryOptions = this.varyOptions.find(
+                  (item) => item.idOption === idOption
+                );
+              }
+              if (!cachedVaryOptions) {
+                throw this.VaryServiceError("option not found on vary", {});
+              }
+
+              newMedusaProductOption =
+                await this.productService_.createProductOptions({
+                  title: options?.data.sDescr_1,
+                  values: options.data.TabValue,
+                  product_id: "",
+                });
+            }
+            const newMapping: InternalOptionMapping = {
+              idOption: idOption,
+              medusaId: newMedusaProductOption.id,
+            };
+
+            this.internalOptionMapping.push(newMapping);
+            return newMapping;
+          } else {
+            throw this.VaryServiceError(
+              "getCategoryMapping",
+              "no category found for this id"
+            );
+          }
+        }
+      }
+    } catch (error) {
+      throw this.VaryServiceError("getOptionMapping", error);
+    }
+  }
+
+  /**
+   * Retrieves a product option from the Vary service based on the provided option code.
+   *
+   * @param {string} optionCode - The code of the product option to retrieve.
+   * @returns {Promise<VaryProductOption>} - A promise that resolves to the product option.
+   * @throws {Error} - Throws an error if the product option is not found or if there is an issue with the Vary service.
+   */
+  async getProductOptionFromVary(
+    optionCode: string
+  ): Promise<VaryProductOption> {
+    try {
+      const cachedOptionData = this.varyOptions.find(
+        (item) => item.sOptionCode === optionCode
+      );
+      if (cachedOptionData) {
+        return cachedOptionData;
+      } else {
+        this.varyOptions = await this.fetchAllProductOptionsFromVary();
+        const newVaryOption = this.varyOptions.find(
+          (item) => item.sOptionCode === optionCode
+        );
+        if (newVaryOption) {
+          return newVaryOption;
+        } else {
+          throw this.VaryServiceError(
+            "getProductOptionFromVary",
+            "option not found"
+          );
+        }
+      }
+    } catch (error) {
+      throw this.VaryServiceError("getProductOptionFromVary", error);
     }
   }
 
@@ -767,22 +1000,61 @@ export default class VaryService {
         }
       }
 
+      const variantOptionValue: Record<string, string> = {};
+      const productHandle: string = toHandle(product.sDescr_1.trim());
+
+      const productOptions: { title: string; values: string[] }[] = [];
+      for (const varyOption of product.tabOptions) {
+        if (varyOption.sValue) {
+          const record = await this.getProductOptionFromVary(
+            varyOption.sOptionCode
+          );
+          productOptions.push({
+            title: varyOption.sOptionCode,
+            values: record.TabValue,
+          });
+          variantOptionValue[varyOption.sOptionCode] = varyOption.sValue;
+        }
+      }
+
+      if (productOptions.length == 0) {
+        productOptions.push({
+          title: "base",
+          values: [productHandle],
+        });
+        variantOptionValue["base"] = productHandle;
+      }
+
+      const medusaPrices: { amount: number; currency_code: string }[] = [];
+      if (
+        product.tabRentalPrice[0].nPrice != null &&
+        product.tabRentalPrice[0].nPrice != 0
+      ) {
+        medusaPrices.push({
+          amount: product.tabRentalPrice[0].nPrice,
+          currency_code: "eur",
+        });
+      }
+      if (
+        product.tabSalePrice[0].nPrice != null &&
+        product.tabSalePrice[0].nPrice != 0
+      ) {
+        medusaPrices.push({
+          amount: product.tabSalePrice[0].nPrice,
+          currency_code: "eur",
+        });
+      }
+
       const workflowInput: CreateProductsWorkflowInput = {
         products: [
           {
-            // id: String(product.idItem),
             external_id: `itemId-${product.idItem}_sItemCode-${product.sItemCode}`,
             title: product.sDescr_1,
             category_ids: medusaCategoryId ? [medusaCategoryId] : [],
             description: product.sDescrFull_1,
-            handle: toHandle(product.sDescr_1),
+            handle: productHandle,
             status: ProductStatus.PUBLISHED,
-            options: [
-              {
-                title: "item",
-                values: [String(product.idItem)],
-              },
-            ],
+            options: productOptions,
             metadata: {
               title_nl: product.sDescr_2,
               title_en: product.sDescr_3,
@@ -805,27 +1077,10 @@ export default class VaryService {
               {
                 title: product.sDescr_1,
                 sku: product.sItemCode,
-                options: {
-                  item: String(product.idItem),
-                },
+                options: variantOptionValue,
                 allow_backorder: true,
                 manage_inventory: false,
-                prices: [
-                  {
-                    // id: `pro${product.idItem}_pri${String(
-                    //   product.tabRentalPrice[0].idListPrice
-                    // )}`,
-                    amount: product.tabRentalPrice[0].nPrice,
-                    currency_code: "usd",
-                  },
-                  {
-                    amount: product.tabSalePrice[0].nPrice,
-                    currency_code: "usd",
-                    // id: `pro${product.idItem}_pri${String(
-                    //   product.tabSalePrice[0].idListPrice
-                    // )}`,
-                  },
-                ],
+                prices: medusaPrices,
                 length: product.nLength,
                 weight: product.nWeight,
                 width: product.nWidth,
@@ -854,8 +1109,6 @@ export default class VaryService {
           },
         ],
       };
-
-      console.log(workflowInput);
 
       await createProductsWorkflow(container).run({
         input: workflowInput,

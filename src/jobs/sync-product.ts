@@ -67,26 +67,32 @@ export default async function greetingJob(container: MedusaContainer) {
         `All Vary Products Fetched | Length: ${allVaryProducts.length}`
       );
 
-      var count: number = 0;
+      // var count: number = 0;
 
       for (const varyProduct of allVaryProducts) {
-        if (varyProduct.idWebCat > 0) {
-          const found = await varyService.checkProductExistanceOnMedusa(
-            varyProduct.idItem,
-            varyProduct.sItemCode
-          );
-
-          if (!found) {
-            await varyService.createNewProductInMedusa(
-              varyProduct,
-              defaultSalesChannel[0].id
+        try {
+          if (varyProduct.idItem > 0) {
+            const found = await varyService.checkProductExistanceOnMedusa(
+              varyProduct.idItem,
+              varyProduct.sItemCode
             );
-          }
 
-          count++;
-          if (count > 5) {
-            break;
+            if (!found) {
+              await varyService.createNewProductInMedusa(
+                varyProduct,
+                defaultSalesChannel[0].id
+              );
+            }
+
+            // count++;
+            // if (count > 10) {
+            //   break;
+            // }
           }
+        } catch (error: any) {
+          logger.warn(
+            `Error while vary to meudsa syncing: ${error.toString()}`
+          );
         }
       }
 
@@ -101,6 +107,6 @@ export default async function greetingJob(container: MedusaContainer) {
 
 export const config = {
   name: "vary_medusa_product_sync",
-  schedule: "* * * * *",
+  schedule: "*/10 * * * *",
   // schedule: "*/30 * * * *",
 };
