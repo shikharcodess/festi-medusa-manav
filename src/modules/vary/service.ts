@@ -702,7 +702,7 @@ export default class VaryService {
                   name: options?.data.sDescr_1,
                   description: options.data.sDescrFull_1,
                   rank: this.convertNSortOrder(String(options.data.nSortorder)),
-                  handle: toHandle(options.data.sDescr_1),
+                  handle: toHandle(options.data.sDescr_1.trim()),
                   parent_category_id: medusaParentCategoryId,
                   metadata: {
                     idWebCat: options.data.idWebCat,
@@ -749,7 +749,7 @@ export default class VaryService {
                   rank: this.convertNSortOrder(
                     String(cachedVaryCategory.nSortorder)
                   ),
-                  handle: toHandle(cachedVaryCategory.sDescr_1),
+                  handle: toHandle(cachedVaryCategory.sDescr_1.trim()),
                   parent_category_id: medusaParentCategoryId,
                   metadata: {
                     idWebCat: cachedVaryCategory.idWebCat,

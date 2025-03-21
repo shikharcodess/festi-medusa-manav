@@ -107,6 +107,7 @@ export default async function greetingJob(container: MedusaContainer) {
 
 export const config = {
   name: "vary_medusa_product_sync",
-  schedule: "*/10 * * * *",
+  schedule: "* * * * *",
+  // schedule: "*/10 * * * *",
   // schedule: "*/30 * * * *",
 };

@@ -15,29 +15,6 @@ module.exports = defineConfig({
     },
   },
   modules: [
-    // {
-    //   resolve: "@medusajs/medusa/event-bus-redis",
-    //   options: {
-    //     redisUrl: process.env.REDIS_URL,
-    //   },
-    // },
-    // {
-    //   resolve: "@medusajs/medusa/payment",
-    //   options: {
-    //     providers: [
-    //       {
-    //         resolve: "@medusajs/medusa/payment-stripe",
-    //         id: "stripe",
-    //         options: {
-    //           apiKey: process.env.STRIPE_API_KEY,
-    //         },
-    //       },
-    //     ],
-    //   },
-    // },
-    // {
-    //   resolve: "./src/modules/sync-service",
-    // },
     {
       resolve: "./src/modules/vary",
       options: {
@@ -45,6 +22,21 @@ module.exports = defineConfig({
         varyUser: "maastery-test",
         varyPassword: "v6JU6FgF4ap43b",
       },
+    },
+    {
+      resolve: "./modules/company",
+    },
+    {
+      resolve: "./modules/quote",
+    },
+    {
+      resolve: "./modules/approval",
+    },
+    {
+      resolve: "@medusajs/medusa/cache-inmemory",
+    },
+    {
+      resolve: "@medusajs/medusa/workflow-engine-inmemory",
     },
   ],
 });
