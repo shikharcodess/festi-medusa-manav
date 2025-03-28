@@ -26,7 +26,7 @@ export type ModuleUpdateQuote = {
 /* Entity: Message */
 
 export type ModuleCreateQuoteMessage = {
-  text: string;
+  text?: string;
   quote_id: string;
   admin_id?: string;
   customer_id?: string;

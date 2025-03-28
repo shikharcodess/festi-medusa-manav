@@ -28,7 +28,14 @@ export async function POST(
   };
 
   await addToCartWorkflow(req.scope).run({
-    input: workflowInput,
+    input: {
+      cart_id: workflowInput.cart_id,
+      items: [
+        ...line_items.map((item) => {
+          return { variant_id: item.variant_id, quantity: item.quantity };
+        }),
+      ],
+    },
   });
 
   const {

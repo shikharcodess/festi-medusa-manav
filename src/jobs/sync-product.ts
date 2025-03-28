@@ -9,105 +9,102 @@ import { createSalesChannelsWorkflow } from "@medusajs/medusa/core-flows";
 import { VARY_MODULES } from "./../modules/vary";
 import VaryService from "./../modules/vary/service";
 
-var syncRunning: boolean = false;
-
 export default async function greetingJob(container: MedusaContainer) {
-  if (!syncRunning) {
-    syncRunning = true;
-    try {
-      const logger = container.resolve("logger");
-      logger.info("Vary Product Sync Trigger Started...");
+  let varyService: VaryService;
+  try {
+    varyService = container.resolve(VARY_MODULES);
+    const syncConfiguration = await varyService.getVarySyncConfiguration();
+    console.log(syncConfiguration);
 
-      const salesChannelModuleService = container.resolve(
-        Modules.SALES_CHANNEL
-      );
-      let defaultSalesChannel =
-        await salesChannelModuleService.listSalesChannels({
-          name: "Default Sales Channel",
-        });
-
-      if (!defaultSalesChannel.length) {
-        // create the default sales channel
-        const { result: salesChannelResult } =
-          await createSalesChannelsWorkflow(container).run({
-            input: {
-              salesChannelsData: [
-                {
-                  name: "Default Sales Channel",
-                },
-              ],
-            },
-          });
-        defaultSalesChannel = salesChannelResult;
-      }
-
-      if (defaultSalesChannel.length <= 0) {
-        return;
-      }
-
-      const productService: IProductModuleService = container.resolve(
-        Modules.PRODUCT
-      );
-      const orderService: IOrderModuleService = container.resolve(
-        Modules.ORDER
-      );
-      const customerService: ICustomerModuleService = container.resolve(
-        Modules.CUSTOMER
-      );
-
-      const varyService: VaryService = container.resolve(VARY_MODULES);
-      varyService.setDependencies(
-        productService,
-        orderService,
-        customerService
-      );
-
-      const allVaryProducts = await varyService.pullAllProductFromVary();
-      console.log(
-        `All Vary Products Fetched | Length: ${allVaryProducts.length}`
-      );
-
-      // var count: number = 0;
-
-      for (const varyProduct of allVaryProducts) {
-        try {
-          if (varyProduct.idItem > 0) {
-            const found = await varyService.checkProductExistanceOnMedusa(
-              varyProduct.idItem,
-              varyProduct.sItemCode
-            );
-
-            if (!found) {
-              await varyService.createNewProductInMedusa(
-                varyProduct,
-                defaultSalesChannel[0].id
-              );
-            }
-
-            // count++;
-            // if (count > 10) {
-            //   break;
-            // }
-          }
-        } catch (error: any) {
-          logger.warn(
-            `Error while vary to meudsa syncing: ${error.toString()}`
-          );
-        }
-      }
-
-      logger.info("Vary Product Sync Trigger Completed!");
-      syncRunning = false;
-    } catch (error) {
-      syncRunning = false;
-      console.error(error);
+    if (!syncConfiguration.active) {
+      return;
     }
+
+    await varyService.toggleSyncRunningStatus(true);
+
+    const logger = container.resolve("logger");
+    logger.info("Vary Product Sync Trigger Started...");
+
+    const salesChannelModuleService = container.resolve(Modules.SALES_CHANNEL);
+    let defaultSalesChannel = await salesChannelModuleService.listSalesChannels(
+      {
+        name: "Default Sales Channel",
+      }
+    );
+
+    if (!defaultSalesChannel.length) {
+      // create the default sales channel
+      const { result: salesChannelResult } = await createSalesChannelsWorkflow(
+        container
+      ).run({
+        input: {
+          salesChannelsData: [
+            {
+              name: "Default Sales Channel",
+            },
+          ],
+        },
+      });
+      defaultSalesChannel = salesChannelResult;
+    }
+
+    if (defaultSalesChannel.length <= 0) {
+      return;
+    }
+
+    const productService: IProductModuleService = container.resolve(
+      Modules.PRODUCT
+    );
+    const orderService: IOrderModuleService = container.resolve(Modules.ORDER);
+    const customerService: ICustomerModuleService = container.resolve(
+      Modules.CUSTOMER
+    );
+
+    varyService.setDependencies(productService, orderService, customerService);
+
+    const allVaryProducts = await varyService.pullAllProductFromVary();
+    console.log(
+      `All Vary Products Fetched | Length: ${allVaryProducts.length}`
+    );
+
+    var count: number = 0;
+
+    for (const varyProduct of allVaryProducts) {
+      try {
+        if (varyProduct.idItem > 0) {
+          const found = await varyService.checkProductExistanceOnMedusa(
+            varyProduct.idItem,
+            varyProduct.sItemCode
+          );
+
+          if (!found) {
+            await varyService.createNewProductInMedusa(
+              varyProduct,
+              defaultSalesChannel[0].id
+            );
+          }
+
+          count++;
+          if (count > 20) {
+            break;
+          }
+        }
+      } catch (error: any) {
+        logger.warn(`Error while vary to meudsa syncing: ${error.toString()}`);
+      }
+    }
+
+    logger.info("Vary Product Sync Trigger Completed!");
+    await varyService.toggleSyncRunningStatus(false);
+  } catch (error) {
+    await varyService.toggleSyncRunningStatus(false);
+    console.error(error);
   }
 }
 
 export const config = {
   name: "vary_medusa_product_sync",
-  schedule: "* * * * *",
+  // schedule: "* * * * *",
   // schedule: "*/10 * * * *",
-  // schedule: "*/30 * * * *",
+  schedule: "*/30 * * * *",
 };

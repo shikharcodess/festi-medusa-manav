@@ -8,10 +8,16 @@ import {
   ProductCategoryDTO,
   ProductOptionDTO,
 } from "@medusajs/framework/types";
-import { VaryServiceOptions } from "./utils/types";
+import { MedusaProductAssoc, VaryServiceOptions } from "./utils/types";
 import axios, { AxiosInstance } from "axios";
 import { container } from "@medusajs/framework";
-import { Modules, ProductStatus, toHandle } from "@medusajs/framework/utils";
+import {
+  generateEntityId,
+  MedusaService,
+  Modules,
+  ProductStatus,
+  toHandle,
+} from "@medusajs/framework/utils";
 import {
   createProductsWorkflow,
   createCustomerAccountWorkflow,
@@ -19,6 +25,9 @@ import {
   createProductOptionsWorkflow,
   CreateProductOptionsWorkflowInput,
 } from "@medusajs/medusa/core-flows";
+import { VaryProductAssoc } from "./models/varyItemAssoc";
+import { VarySyncConfiguration } from "./models/varySyncConfiguration";
+import { VarySyncLogs } from "./models/varySyncLogs";
 
 enum VaryLog {
   WARNING,
@@ -27,10 +36,17 @@ enum VaryLog {
   INFO,
 }
 
+export interface VarySyncConfiguration {
+  id: string;
+  active: boolean;
+  trigger_duration: number;
+  trigger_unit: string;
+  metadata?: Record<string, any>;
+}
+
 export interface VaryProduct {
   idItem: number;
   sItemCode: string;
-  tabAssoc: string;
   sDescr_1: string;
   sDescr_2: string;
   sDescr_3: string;
@@ -38,6 +54,18 @@ export interface VaryProduct {
   sDescrFull_2: string;
   sDescrFull_3: string;
   idWebCat: number;
+  nLength: number;
+  nWidth: number;
+  nHeight: number;
+  nWeight: number;
+  nDiameter: number;
+  nThickness: number;
+  nCapacity: number;
+  bBlocked: boolean;
+  bHided: boolean;
+  nConditioning: number;
+  sPackages: string;
+  bSaleOnly: boolean;
   tabRentalPrice: {
     idListPrice: number;
     nPrice: number;
@@ -55,18 +83,33 @@ export interface VaryProduct {
     sDescr_3: string;
     sValue: string;
   }[];
-  nLength: number;
-  nWidth: number;
-  nHeight: number;
-  nWeight: number;
-  nDiameter: number;
-  nThickness: number;
-  nCapacity: number;
-  bBlocked: boolean;
-  bHided: boolean;
-  nConditioning: number;
-  sPackages: string;
-  bSaleOnly: boolean;
+  tabAssoc?: VaryProductAssoc[];
+}
+
+export interface VaryProductAssoc {
+  sItemCode: string;
+  sItemAssocCode: string;
+  nQuantity: number;
+  nAssocType: number;
+  IdAssocGroup: number;
+  nLineType: number;
+  nManagementType: number;
+  sPriceAssoc: string;
+  bProposeByDefault: boolean;
+  nRoundType: number;
+  nPrintLevel: number;
+  nPriceCalculationMethod: number;
+  nDivers_4: number;
+  nDivers_5: number;
+  nDivers_6: number;
+  nDivers_7: number;
+  nDivers_8: number;
+  nDivers_9: number;
+  nDivers_10: number;
+  nType: number;
+  nLineNumber: number;
+  nPriceValue: number;
+  nDividedQuantity: number;
 }
 
 export interface VaryDocument {
@@ -176,6 +219,15 @@ export interface VaryProductOption {
   TabValue: string[];
 }
 
+export interface MedusaProductType {
+  id: string;
+  value: string;
+  created_at: Date;
+  updated_at?: string | Date;
+  deleted_at?: string | Date;
+  metadata?: Record<string, any>;
+}
+
 interface InternalCategoryMapping {
   medusaId: string;
   idWebcat: number;
@@ -183,6 +235,11 @@ interface InternalCategoryMapping {
 
 interface InternalOptionMapping {
   idOption: number;
+  medusaId: string;
+}
+
+interface InternalProductTypeMapping {
+  sItemAssocCode: string;
   medusaId: string;
 }
 
@@ -274,7 +331,11 @@ interface InternalOptionMapping {
  * @description To Be Implemented!
  * @returns {Promise<void>}
  */
-export default class VaryService {
+export default class VaryService extends MedusaService({
+  VaryProductAssoc,
+  VarySyncConfiguration,
+  VarySyncLogs,
+}) {
   private varyAxiosClient_: AxiosInstance;
   private varyToken: string;
   private options_: VaryServiceOptions;
@@ -284,13 +345,16 @@ export default class VaryService {
 
   private internalCategoryMapping: InternalCategoryMapping[] = [];
   private internalOptionMapping: InternalOptionMapping[] = [];
+  private internalProductTYpeMapping: InternalProductTypeMapping[] = [];
   private varyCategory: VaryCategory[] = [];
   private varyOptions: VaryProductOption[] = [];
+  private medusaProductTypes: MedusaProductType[] = [];
 
   private isServiceReady_: boolean = false;
   publicMetadata: Record<string, any> = {};
 
   constructor(c, options: VaryServiceOptions) {
+    super(c);
     this.options_ = options;
     this.setupAxiosClient();
   }
@@ -299,6 +363,15 @@ export default class VaryService {
     return this.isServiceReady_;
   }
 
+  /**
+   * Sets the dependencies required for the service to function properly.
+   * This method initializes the service with the provided instances of
+   * product, order, and customer services, and marks the service as ready.
+   *
+   * @param productService - An instance of the product service implementing `IProductModuleService`.
+   * @param orderService - An instance of the order service implementing `IOrderModuleService`.
+   * @param customerService - An instance of the customer service implementing `ICustomerModuleService`.
+   */
   setDependencies(
     productService: IProductModuleService,
     orderService: IOrderModuleService,
@@ -503,7 +576,7 @@ export default class VaryService {
         );
       }
       const response = await this.varyAxiosClient_.request({
-        url: `/item??WithOptions=1&nPageSize=100000&nPageNumber=1&sFormatDescrFull=TXT&?nPageSize=100&nPageNumber=1&bOnTheWeb=1&bWithSearchkeys=0&bWithOptions=1&bSHOnly=0&bWithSHinfo=0&bHided=false&bBlocked=false&sFormatDescrFull=TXT&bWithHTMLDescr=0&pWithExtandedInformation=0&bWithStkInfo=1&bWithMemo=1&bUncodes=true`,
+        url: `/item??WithOptions=1&nPageSize=100000&nPageNumber=1&sFormatDescrFull=TXT&?nPageSize=100&nPageNumber=1&bOnTheWeb=1&bWithSearchkeys=0&bWithOptions=1&bSHOnly=0&bWithSHinfo=0&bHided=false&bBlocked=false&sFormatDescrFull=TXT&bWithHTMLDescr=0&pWithExtandedInformation=0&bWithStkInfo=1&bWithMemo=1&bUncodes=true&tabAssoc=Vary,Web,Related`,
         method: "GET",
       });
       if (response.status == 200) {
@@ -958,6 +1031,181 @@ export default class VaryService {
   }
 
   /**
+   * Creates a new Medusa product type with the specified name.
+   *
+   * @param name - The name of the product type to be created. Must be a non-empty string.
+   * @returns A promise that resolves to the created `MedusaProductType` object.
+   * @throws Will throw an error if the name is empty or if the product type creation fails.
+   */
+  async createMedusaProductType(
+    value: string,
+    sItemAssocCode: string
+  ): Promise<MedusaProductType> {
+    try {
+      if (value != "") {
+        const newMedusaProductTypes =
+          await this.productService_.createProductTypes([
+            { value: value, metadata: { sItemAssocCode: sItemAssocCode } },
+          ]);
+        if (newMedusaProductTypes.length > 0) {
+          return newMedusaProductTypes[0] as MedusaProductType;
+        } else {
+          throw this.VaryServiceError("createMedusaProductType", {
+            message: "something went wrong while creating medusa product type",
+          });
+        }
+      } else {
+        throw this.VaryServiceError("createMedusaProductType", {
+          message: "empty product type value is not allowed",
+        });
+      }
+    } catch (error: any) {
+      throw this.VaryServiceError(error.toString(), error);
+    }
+  }
+
+  /**
+   * Checks if a product type with the specified value exists in Medusa.
+   *
+   * @param value - The value of the product type to check for existence.
+   * @returns A promise that resolves to `true` if the product type exists, otherwise `false`.
+   * @throws Will throw an error if the operation fails.
+   */
+  async checkProductTypeExistanceOnMedusa(value: string): Promise<boolean> {
+    try {
+      const medusaTypeValues = await this.productService_.listProductTypes({
+        value: value,
+      });
+      const foundMedusaTypesValue = medusaTypeValues.find(
+        (item) => item.value === value
+      );
+      if (foundMedusaTypesValue) {
+        return true;
+      } else {
+        return false;
+      }
+    } catch (error: any) {
+      throw this.VaryServiceError("checkProductTypeExistanceOnMedusa", error);
+    }
+  }
+
+  /**
+   * Fetches all product types from Medusa.
+   *
+   * This function retrieves the total count of product types and then fetches all product types
+   * using the `listAndCountProductTypes` and `listProductTypes` methods of the product service.
+   *
+   * @returns {Promise<MedusaProductType[]>} A promise that resolves to an array of Medusa product types.
+   * @throws Will throw an error if the operation fails, wrapping the error in a `VaryServiceError`.
+   */
+  async fetchAllProductTypeFromMedusa(): Promise<MedusaProductType[]> {
+    try {
+      const medusaProductTypeCount =
+        await this.productService_.listAndCountProductTypes(
+          {},
+          { select: ["id"] }
+        );
+      const medusaProductTypes = await this.productService_.listProductTypes(
+        {},
+        { skip: 0, take: medusaProductTypeCount[1] }
+      );
+
+      return medusaProductTypes as MedusaProductType[];
+    } catch (error: any) {
+      throw this.VaryServiceError("checkProductTypeExistanceOnMedusa", error);
+    }
+  }
+
+  /**
+   * Retrieves or creates a mapping between a product type and its associated Medusa product type.
+   *
+   * @param value - The unique identifier (`sItemAssocCode`) for the product type mapping.
+   * @param option - Optional parameters for the operation.
+   *   - `createIsNotFound`: If `true`, a new Medusa product type will be created if no mapping is found.
+   *   - `data`: Optional data to use when creating a new Medusa product type.
+   *
+   * @returns A promise that resolves to an `InternalProductTypeMapping` object containing the mapping details.
+   *
+   * @throws Will throw an error if the mapping cannot be resolved and `createIsNotFound` is not set to `true`.
+   *
+   * @example
+   * ```typescript
+   * const mapping = await service.getProductTypeMapping("exampleCode", {
+   *   createIsNotFound: true,
+   *   data: { sItemAssocCode: "exampleCode" },
+   * });
+   * console.log(mapping);
+   * ```
+   */
+  async getProductTypeMapping(
+    value: string,
+    option?: { createIsNotFound: boolean; data?: VaryProductAssoc }
+  ): Promise<InternalProductTypeMapping> {
+    try {
+      const foundProductTypeMapping = this.internalProductTYpeMapping.find(
+        (item) => item.sItemAssocCode === value
+      );
+      if (foundProductTypeMapping) {
+        return foundProductTypeMapping;
+      } else {
+        const foundMedusaProductType = this.medusaProductTypes.find(
+          (item) => item.metadata?.sItemAssocCode === value
+        );
+        if (foundMedusaProductType) {
+          const mapping: InternalProductTypeMapping = {
+            sItemAssocCode: value,
+            medusaId: foundMedusaProductType.id,
+          };
+          this.internalProductTYpeMapping.push(mapping);
+          return mapping;
+        } else {
+          this.medusaProductTypes = await this.fetchAllProductTypeFromMedusa();
+          const foundMedusaProductTypeS2 = this.medusaProductTypes.find(
+            (item) => item.metadata?.sItemAssocCode === value
+          );
+          if (foundMedusaProductTypeS2) {
+            const mapping: InternalProductTypeMapping = {
+              sItemAssocCode: value,
+              medusaId: foundMedusaProductTypeS2.id,
+            };
+            this.internalProductTYpeMapping.push(mapping);
+            return mapping;
+          } else {
+            if (option?.createIsNotFound) {
+              let newMedusaProductType: MedusaProductType;
+              if (option.data) {
+                newMedusaProductType = await this.createMedusaProductType(
+                  option.data.sItemAssocCode,
+                  option.data.sItemAssocCode
+                );
+              } else {
+                newMedusaProductType = await this.createMedusaProductType(
+                  value,
+                  value
+                );
+              }
+              this.medusaProductTypes.push(newMedusaProductType);
+
+              const mapping: InternalProductTypeMapping = {
+                sItemAssocCode: newMedusaProductType.metadata?.sItemAssocCode,
+                medusaId: newMedusaProductType.id,
+              };
+              this.internalProductTYpeMapping.push(mapping);
+              return mapping;
+            } else {
+              throw this.VaryServiceError("getProductTypeMapping", {
+                message: "resolution of vary product assoc failed",
+              });
+            }
+          }
+        }
+      }
+    } catch (error: any) {
+      throw this.VaryServiceError("getProductTypeMapping", error);
+    }
+  }
+
+  /**
    * Creates a new product in Medusa using the provided VaryProduct details.
    *
    * @param {VaryProduct} product - The product details to create in Medusa.
@@ -1045,7 +1293,25 @@ export default class VaryService {
         });
       }
 
+      const medusaProductAssocIds: string[] = [];
+      if (product.tabAssoc) {
+        for (const assoc of product.tabAssoc) {
+          const medusaProductAssoc =
+            await this.getOneVaryProductAssocFromMedusaByValue(
+              assoc.sItemAssocCode
+            );
+          if (medusaProductAssoc) {
+            medusaProductAssocIds.push(medusaProductAssoc.id);
+          } else {
+            const newMedusaProductAssoc =
+              await this.createVaryItemAssocInMedusa(assoc.sItemAssocCode);
+            medusaProductAssocIds.push(newMedusaProductAssoc.id);
+          }
+        }
+      }
+
       const workflowInput: CreateProductsWorkflowInput = {
+        additional_data: { product_assoc_ids: medusaProductAssocIds },
         products: [
           {
             external_id: `itemId-${product.idItem}_sItemCode-${product.sItemCode}`,
@@ -1115,6 +1381,235 @@ export default class VaryService {
       });
     } catch (error) {
       throw this.VaryServiceError("createNewProductInMedusa", error);
+    }
+  }
+
+  /**
+   * Creates a new Medusa product association for a given value.
+   *
+   * This method generates a unique entity ID for the provided value,
+   * constructs a Medusa product association object, and saves it using
+   * the `createVaryProductAssocs` method. If an error occurs during the
+   * process, it throws a custom `VaryServiceError`.
+   *
+   * @param value - The value to associate with the Medusa product.
+   * @returns A promise that resolves to the newly created Medusa product association.
+   * @throws VaryServiceError if the creation process fails.
+   */
+  async createVaryItemAssocInMedusa(
+    value: string
+  ): Promise<MedusaProductAssoc> {
+    try {
+      const newMedusaProductAssoc: MedusaProductAssoc =
+        await this.createVaryProductAssocs({
+          id: generateEntityId(value, "vit"),
+          name: value,
+        });
+      return newMedusaProductAssoc;
+    } catch (error) {
+      throw this.VaryServiceError("createVaryItemAssocInMedusa", error);
+    }
+  }
+
+  /**
+   * Checks if a Vary item association exists on Medusa by its name.
+   *
+   * This method queries the list of Medusa product associations using the provided
+   * name and determines if an association with the same name exists.
+   *
+   * @param value - The name of the Vary item association to check.
+   * @returns A promise that resolves to `true` if the association exists, or `false` otherwise.
+   * @throws Will throw an error if the operation fails, wrapping the error in a `VaryServiceError`.
+   */
+  async checkVaryItemAssocExistaneOnMedusa(value: string): Promise<boolean> {
+    try {
+      const medusaProductAssocs: MedusaProductAssoc[] =
+        await this.listVaryProductAssocs({ name: value });
+      const foundMedusaProductAssoc = medusaProductAssocs.find(
+        (item) => item.name === value
+      );
+      if (foundMedusaProductAssoc) {
+        return true;
+      } else {
+        return false;
+      }
+    } catch (error) {
+      throw this.VaryServiceError("checkVaryItemAssocExistaneOnMedusa", error);
+    }
+  }
+
+  /**
+   * Retrieves a single Medusa product association by its value.
+   *
+   * This method fetches a list of Medusa product associations filtered by the provided value
+   * and attempts to find a matching association. If a match is found, it is returned.
+   * Otherwise, an error is thrown indicating that no record was found for the given value.
+   *
+   * @param value - The value to search for in the Medusa product associations.
+   * @returns A promise that resolves to the matching `MedusaProductAssoc` object.
+   * @throws Will throw an error if no matching record is found or if an unexpected error occurs.
+   */
+  async getOneVaryProductAssocFromMedusaByValue(
+    value?: string
+  ): Promise<MedusaProductAssoc | null> {
+    try {
+      const medusaProductAssocs: MedusaProductAssoc[] =
+        await this.listVaryProductAssocs({ name: value });
+      const foundMedusaProductAssoc = medusaProductAssocs.find(
+        (item) => item.name === value
+      );
+      if (foundMedusaProductAssoc) {
+        return foundMedusaProductAssoc;
+      } else {
+        return null;
+      }
+    } catch (error: any) {
+      throw this.VaryServiceError(
+        "getOneVaryProductAssocFromMedusaByValue",
+        error
+      );
+    }
+  }
+
+  /**
+   * Retrieves a single Medusa product association by its ID from the Medusa system.
+   *
+   * @param id - The unique identifier of the Medusa product association to retrieve.
+   * @returns A promise that resolves to the found `MedusaProductAssoc` object.
+   * @throws Will throw an error if no record is found for the provided ID or if an unexpected error occurs.
+   */
+  async getOneVaryProductAssocFromMedusaById(
+    id?: string
+  ): Promise<MedusaProductAssoc> {
+    try {
+      const medusaProductAssocs: MedusaProductAssoc[] =
+        await this.listVaryProductAssocs({ name: id });
+      const foundMedusaProductAssoc = medusaProductAssocs.find(
+        (item) => item.id === id
+      );
+      if (foundMedusaProductAssoc) {
+        return foundMedusaProductAssoc;
+      } else {
+        throw this.VaryServiceError("getOneVaryProductAssocFromMedusa", {
+          message: "no record found for provided id",
+        });
+      }
+    } catch (error: any) {
+      throw this.VaryServiceError(
+        "getOneVaryProductAssocFromMedusaById",
+        error
+      );
+    }
+  }
+
+  /**
+   * Retrieves all Medusa product associations from the database.
+   *
+   * This method fetches all `MedusaProductAssoc` records by first determining the total count
+   * of associations and then retrieving them in a single query. It ensures that all records
+   * are returned as an array of `MedusaProductAssoc` objects.
+   *
+   * @returns {Promise<MedusaProductAssoc[]>} A promise that resolves to an array of `MedusaProductAssoc` objects.
+   * @throws Will throw an error if the retrieval process fails, wrapping the error in a `VaryServiceError`.
+   */
+  async getAllVaryProductAssocFromMedusa(): Promise<MedusaProductAssoc[]> {
+    try {
+      const medusaProductAssocCounts = await this.listAndCountVaryProductAssocs(
+        {},
+        { select: ["id"] }
+      );
+      const medusaProductAssocs = await this.listVaryProductAssocs(
+        {},
+        { skip: 0, take: medusaProductAssocCounts[1] }
+      );
+      return medusaProductAssocs as MedusaProductAssoc[];
+    } catch (error) {
+      throw this.VaryServiceError("getAllVaryProductAssocFromMedusa", error);
+    }
+  }
+
+  /**
+   * Retrieves the VarySyncConfiguration. If a configuration with the specified ID
+   * does not exist, a new one is created with default values.
+   *
+   * @returns {Promise<VarySyncConfiguration>} A promise that resolves to the VarySyncConfiguration.
+   * @throws Will throw an error if the operation fails.
+   */
+  async getVarySyncConfiguration(): Promise<VarySyncConfiguration> {
+    try {
+      const configurations = await this.listVarySyncConfigurations(
+        { id: "1" },
+        { skip: 0, take: 1 }
+      );
+      const foundConfiguration = configurations.find((item) => item.id === "1");
+      if (foundConfiguration) {
+        return foundConfiguration as VarySyncConfiguration;
+      } else {
+        const createdConfiguration = await this.createVarySyncConfigurations({
+          id: generateEntityId("1"),
+          active: true,
+          trigger_duration: 10,
+          trigger_unit: "minute",
+        });
+        return createdConfiguration;
+      }
+    } catch (error) {
+      throw this.VaryServiceError("getVarySyncConfiguration", error);
+    }
+  }
+
+  /**
+   * Toggles the running status of the Vary synchronization process.
+   *
+   * @param status - A boolean indicating the desired running status of the sync process.
+   *                 Pass `true` to set the sync process as running, or `false` to stop it.
+   * @returns A promise that resolves when the status has been successfully updated.
+   * @throws Will throw an error if the update operation fails.
+   */
+  async toggleSyncRunningStatus(status: boolean): Promise<void> {
+    try {
+      await this.updateVarySyncConfigurations({ id: "1", running: status });
+      return;
+    } catch (error) {
+      throw this.VaryServiceError("toggleSyncRunningStatus", error);
+    }
+  }
+
+  /**
+   * Updates the synchronization trigger configuration for the Vary service.
+   *
+   * @param trigger_duration - The duration for the synchronization trigger (optional).
+   * @param trigger_unit - The unit of time for the synchronization trigger (optional).
+   * @returns A promise that resolves to the updated `VarySyncConfiguration`.
+   *
+   * @throws Will throw an error if both `trigger_duration` and `trigger_unit` are null or undefined.
+   * @throws Will throw a `VaryServiceError` if an error occurs during the update process.
+   */
+  async updateSyncTrigger(
+    trigger_duration?: number,
+    trigger_unit?: string
+  ): Promise<VarySyncConfiguration> {
+    try {
+      if (trigger_duration != null || trigger_unit != null) {
+        const updateBody: Record<string, any> = {};
+        if (trigger_duration) {
+          updateBody.trigger_duration = trigger_duration;
+        }
+        if (trigger_unit) {
+          updateBody.trigger_unit = trigger_unit;
+        }
+        const updated = await this.updateVarySyncConfigurations({
+          id: "1",
+          ...updateBody,
+        });
+        return updated as VarySyncConfiguration;
+      } else {
+        throw this.VaryServiceError("updateSyncError", {
+          message: "empty values are not allowed",
+        });
+      }
+    } catch (error) {
+      throw this.VaryServiceError("updateSyncTrigger", error);
     }
   }
 

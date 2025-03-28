@@ -162,12 +162,12 @@ export const useAddCompanyToCustomerGroup = (
 
   return useMutation({
     mutationFn: (groupId: string) =>
-      sdk.client.fetch(`/admin/companies/${companyId}/customer-group`, {
+      sdk.client.fetch<void>(`/admin/companies/${companyId}/customer-group`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: { group_id: groupId },
+        body: JSON.stringify({ group_id: groupId }),
       }),
     onSuccess: (data: any, variables: any, context: any) => {
       queryClient.invalidateQueries({
@@ -190,7 +190,7 @@ export const useRemoveCompanyFromCustomerGroup = (
 
   return useMutation({
     mutationFn: (groupId: string) =>
-      sdk.client.fetch(
+      sdk.client.fetch<void>(
         `/admin/companies/${companyId}/customer-group/${groupId}`,
         {
           method: "DELETE",

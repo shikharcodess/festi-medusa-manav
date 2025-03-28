@@ -50,6 +50,7 @@ export const POST = async (
     input: {
       ...req.validatedBody,
       customer_id: req.auth_context.actor_id,
+      cart_id: req.validatedBody.cart_id ?? "", // Ensure cart_id is always provided
     },
   });
 
