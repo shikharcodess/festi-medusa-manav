@@ -23,11 +23,11 @@
   "packageManager": "yarn@4.4.0",
   "dependencies": {
     "@headlessui/react": "2.2.0",
-    "@medusajs/admin-sdk": "2.5.1",
-    "@medusajs/cli": "2.5.1",
-    "@medusajs/framework": "2.5.1",
-    "@medusajs/medusa": "2.5.1",
-    "@medusajs/ui": "4.0.6",
+    "@medusajs/admin-sdk": "latest",
+    "@medusajs/cli": "latest",
+    "@medusajs/framework": "latest",
+    "@medusajs/medusa": "latest",
+    "@medusajs/ui": "latest",
     "@mikro-orm/core": "6.4.3",
     "@mikro-orm/knex": "6.4.3",
     "@mikro-orm/migrations": "6.4.3",
@@ -37,11 +37,11 @@
     "zod": "3.22.4"
   },
   "devDependencies": {
-    "@medusajs/test-utils": "2.5.1",
+    "@medusajs/test-utils": "latest",
     "@mikro-orm/cli": "6.4.3",
     "@swc/core": "1.5.7",
     "@swc/jest": "^0.2.36",
-    "@types/jest": "^29.5.14",
+    "@types/jest": "^29.5.13",
     "@types/node": "^20.0.0",
     "@types/react": "^18.3.2",
     "@types/react-dom": "^18.2.25",
@@ -50,8 +50,8 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.5.3",
-    "vite": "^5.2.11"
+    "typescript": "^5.6.2",
+    "vite": "^5.2.14"
   },
   "engines": {
     "node": ">=20"
