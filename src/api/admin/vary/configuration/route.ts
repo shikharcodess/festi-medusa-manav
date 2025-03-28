@@ -8,30 +8,37 @@ export const GET = async (
   req: MedusaRequest<AdminGetVaryLogsParamsType>,
   res: MedusaResponse
 ) => {
-  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY);
-
-  const { fields, pagination } = req.queryConfig;
-  const { data: logs, metadata } = await query.graph({
-    entity: "vary_sync_logs",
-    fields,
-    pagination: {
-      ...pagination,
-      skip: pagination.skip!,
-    },
-  });
-
-  res.json({
-    logs,
-    count: metadata!.count,
-    offset: metadata!.skip,
-    limit: metadata!.take,
-  });
+  const varyService: VaryService = req.scope.resolve(VARY_MODULES);
+  const configuration = await varyService.getVarySyncConfiguration();
+  res.json({ configuration });
 };
 
 export const PATCH = async (req: MedusaRequest, res: MedusaResponse) => {
-  const s = req.body as { active?: boolean; trigger_unit?: string };
+  const s = req.body as {
+    active?: boolean;
+    trigger_duration?: number;
+    trigger_unit?: string;
+  };
   const varyService: VaryService = req.scope.resolve(VARY_MODULES);
-  const updateBody: any = {};
+
+  if (
+    s.active === undefined ||
+    s.trigger_duration === undefined ||
+    !s.trigger_unit
+  ) {
+    return res
+      .status(400)
+      .json({
+        message:
+          "Missing required fields: active, trigger_duration, trigger_unit",
+      });
+  }
+
+  const updateBody: any = {
+    active: s.active,
+    trigger_duration: s.trigger_duration,
+    trigger_unit: s.trigger_unit,
+  };
 
   const configuration = await varyService.updateVarySyncConfigurations({
     id: "1",
