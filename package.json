@@ -22,7 +22,6 @@
   },
   "packageManager": "yarn@4.4.0",
   "dependencies": {
-    "@headlessui/react": "2.2.0",
     "@medusajs/admin-sdk": "latest",
     "@medusajs/cli": "latest",
     "@medusajs/framework": "latest",
