@@ -336,8 +336,8 @@ export default class VaryService extends MedusaService({
   VarySyncConfiguration,
   VarySyncLogs,
 }) {
-  private varyAxiosClient_: AxiosInstance;
-  private varyToken: string;
+  private varyAxiosClient_?: AxiosInstance;
+  private varyToken?: string;
   private options_: VaryServiceOptions;
   private productService_?: IProductModuleService;
   private orderService_?: IOrderModuleService;
@@ -353,7 +353,7 @@ export default class VaryService extends MedusaService({
   private isServiceReady_: boolean = false;
   publicMetadata: Record<string, any> = {};
 
-  constructor(c, options: VaryServiceOptions) {
+  constructor(c: any, options: VaryServiceOptions) {
     super(c);
     this.options_ = options;
     this.setupAxiosClient();
@@ -452,7 +452,7 @@ export default class VaryService extends MedusaService({
           try {
             this.varyToken = await this.getVaryToken();
             response.config.headers.Authorization = `${this.varyToken}`;
-            return this.varyAxiosClient_.request(response.config);
+            return this.varyAxiosClient_?.request(response.config);
           } catch (error) {
             this.VaryServiceLog(
               VaryLog.WARNING,
@@ -468,7 +468,7 @@ export default class VaryService extends MedusaService({
           try {
             this.varyToken = await this.getVaryToken();
             error.config.headers.Authorization = `${this.varyToken}`;
-            return this.varyAxiosClient_.request(error.config);
+            return this.varyAxiosClient_?.request(error.config);
           } catch (err) {
             this.VaryServiceLog(
               VaryLog.WARNING,
@@ -575,11 +575,11 @@ export default class VaryService extends MedusaService({
           "requires external dependencies are not set"
         );
       }
-      const response = await this.varyAxiosClient_.request({
+      const response = await this.varyAxiosClient_?.request({
         url: `/item??WithOptions=1&nPageSize=100000&nPageNumber=1&sFormatDescrFull=TXT&?nPageSize=100&nPageNumber=1&bOnTheWeb=1&bWithSearchkeys=0&bWithOptions=1&bSHOnly=0&bWithSHinfo=0&bHided=false&bBlocked=false&sFormatDescrFull=TXT&bWithHTMLDescr=0&pWithExtandedInformation=0&bWithStkInfo=1&bWithMemo=1&bUncodes=true&tabAssoc=Vary,Web,Related`,
         method: "GET",
       });
-      if (response.status == 200) {
+      if (response?.status == 200) {
         if ((response.data as any).Items.length > 0) {
           const responseBody = response.data.Items as VaryProduct[];
           return responseBody;
@@ -592,7 +592,7 @@ export default class VaryService extends MedusaService({
       } else {
         throw this.VaryServiceError(
           "pullMultipleProductFromVary",
-          `vary item fetch request failed with status ${response.status}`
+          `vary item fetch request failed with status ${response?.status}`
         );
       }
     } catch (error) {
@@ -614,11 +614,11 @@ export default class VaryService extends MedusaService({
           "requires external dependencies are not set"
         );
       }
-      const response = await this.varyAxiosClient_.request({
+      const response = await this.varyAxiosClient_?.request({
         url: `/item?idItem=${itemId}`,
         method: "GET",
       });
-      if (response.status == 200) {
+      if (response?.status == 200) {
         if ((response.data as any).Items.length > 0) {
           const responseBody = response.data.Items[0] as VaryProduct;
           return responseBody;
@@ -631,7 +631,7 @@ export default class VaryService extends MedusaService({
       } else {
         throw this.VaryServiceError(
           "pullOneProductFromVary",
-          `vary item fetch request failed with status ${response.status}`
+          `vary item fetch request failed with status ${response?.status}`
         );
       }
     } catch (error) {
@@ -657,11 +657,11 @@ export default class VaryService extends MedusaService({
         );
       }
 
-      const products = await this.productService_.listProducts(
+      const products = await this.productService_?.listProducts(
         { external_id: `itemId-${id}_sItemCode-${itemCode}` },
         { select: ["external_id"] }
       );
-      return !!products.find(
+      return !!products?.find(
         (item) => item.external_id === `itemId-${id}_sItemCode-${itemCode}`
       );
     } catch (error) {
@@ -683,11 +683,11 @@ export default class VaryService extends MedusaService({
           "requires external dependencies are not set"
         );
       }
-      const response = await this.varyAxiosClient_.request({
+      const response = await this.varyAxiosClient_?.request({
         url: `/item/cat?tabCategType=Web&sFormatDescrFull=TXT&bWithHTMLDescr=0`,
         method: "GET",
       });
-      if (response.status == 200) {
+      if (response?.status == 200) {
         if ((response.data as any).WebCat.length > 0) {
           const responseBody: VaryCategory[] = (response.data as any)
             .WebCat as VaryCategory[];
@@ -737,15 +737,20 @@ export default class VaryService extends MedusaService({
         return foundCategory;
       } else {
         const categoryCount =
-          await this.productService_.listAndCountProductCategories(
+          await this.productService_?.listAndCountProductCategories(
             {},
             { select: ["id"], take: 1 }
           );
-        const categoryList = await this.productService_.listProductCategories(
+        if (!categoryCount) {
+          throw this.VaryServiceError("getCategoryMapping", {
+            message: "error file fetching total category count on medusa",
+          });
+        }
+        const categoryList = await this.productService_?.listProductCategories(
           {},
           { select: ["id", "metadata"], skip: 0, take: categoryCount[1] }
         );
-        const medusaCategory = categoryList.find(
+        const medusaCategory = categoryList?.find(
           (item) => (item.metadata?.idWebCat as number) === id
         );
 
@@ -758,7 +763,7 @@ export default class VaryService extends MedusaService({
           return newMapping;
         } else {
           if (options?.createIfNotFound) {
-            let newMedusaCategory: ProductCategoryDTO;
+            let newMedusaCategory: ProductCategoryDTO | any;
             if (options.data) {
               var medusaParentCategoryId: string | null = null;
               if (options.data.idParent != null && options.data.idParent != 0) {
@@ -771,7 +776,7 @@ export default class VaryService extends MedusaService({
                 }
               }
               newMedusaCategory =
-                await this.productService_.createProductCategories({
+                await this.productService_?.createProductCategories({
                   name: options?.data.sDescr_1,
                   description: options.data.sDescrFull_1,
                   rank: this.convertNSortOrder(String(options.data.nSortorder)),
@@ -816,7 +821,7 @@ export default class VaryService extends MedusaService({
               }
 
               newMedusaCategory =
-                await this.productService_.createProductCategories({
+                await this.productService_?.createProductCategories({
                   name: cachedVaryCategory.sDescr_1,
                   description: cachedVaryCategory.sDescrFull_1,
                   rank: this.convertNSortOrder(
@@ -872,18 +877,18 @@ export default class VaryService extends MedusaService({
           "requires external dependencies are not set"
         );
       }
-      const response = await this.varyAxiosClient_.request({
+      const response = await this.varyAxiosClient_?.request({
         url: `/item/option`,
         method: "GET",
       });
-      if (response.status == 200) {
+      if (response?.status == 200) {
         const varyOptions: VaryProductOption[] = (response.data as any)
           .Options as VaryProductOption[];
         return varyOptions;
       } else {
         throw this.VaryServiceError(
           "fetchAllProductOptionsFromVary",
-          response.data
+          response?.data
         );
       }
     } catch (error) {
@@ -925,15 +930,21 @@ export default class VaryService extends MedusaService({
         return foundCategory;
       } else {
         const categoryCount =
-          await this.productService_.listAndCountProductOptions(
+          await this.productService_?.listAndCountProductOptions(
             {},
             { select: ["id"], take: 1 }
           );
-        const productOptionList = await this.productService_.listProductOptions(
-          {},
-          { select: ["id", "metadata"], skip: 0, take: categoryCount[1] }
-        );
-        const medusaProductOption = productOptionList.find(
+        if (!categoryCount) {
+          throw this.VaryServiceError("getOptionMapping", {
+            message: "error file fetchinig total option count from medusa",
+          });
+        }
+        const productOptionList =
+          await this.productService_?.listProductOptions(
+            {},
+            { select: ["id", "metadata"], skip: 0, take: categoryCount[1] }
+          );
+        const medusaProductOption = productOptionList?.find(
           (item) => (item.metadata?.idOption as number) === idOption
         );
 
@@ -946,10 +957,10 @@ export default class VaryService extends MedusaService({
           return newMapping;
         } else {
           if (options?.createIfNotFound) {
-            let newMedusaProductOption: ProductOptionDTO;
+            let newMedusaProductOption: ProductOptionDTO | any;
             if (options.data) {
               newMedusaProductOption =
-                await this.productService_.createProductOptions({
+                await this.productService_?.createProductOptions({
                   title: options?.data.sDescr_1,
                   values: options.data.TabValue,
                   product_id: "",
@@ -968,10 +979,14 @@ export default class VaryService extends MedusaService({
                 throw this.VaryServiceError("option not found on vary", {});
               }
 
+              if (!options.data) {
+                throw this.VaryServiceError("getOptionMapping", {});
+              }
+
               newMedusaProductOption =
-                await this.productService_.createProductOptions({
-                  title: options?.data.sDescr_1,
-                  values: options.data.TabValue,
+                await this.productService_?.createProductOptions({
+                  title: (options.data as any).sDescr_1,
+                  values: (options.data as any).TabValue,
                   product_id: "",
                 });
             }
@@ -1044,9 +1059,14 @@ export default class VaryService extends MedusaService({
     try {
       if (value != "") {
         const newMedusaProductTypes =
-          await this.productService_.createProductTypes([
+          await this.productService_?.createProductTypes([
             { value: value, metadata: { sItemAssocCode: sItemAssocCode } },
           ]);
+        if (!newMedusaProductTypes) {
+          throw this.VaryServiceError("createMedusaProductType", {
+            message: "",
+          });
+        }
         if (newMedusaProductTypes.length > 0) {
           return newMedusaProductTypes[0] as MedusaProductType;
         } else {
@@ -1073,9 +1093,12 @@ export default class VaryService extends MedusaService({
    */
   async checkProductTypeExistanceOnMedusa(value: string): Promise<boolean> {
     try {
-      const medusaTypeValues = await this.productService_.listProductTypes({
+      const medusaTypeValues = await this.productService_?.listProductTypes({
         value: value,
       });
+      if (!medusaTypeValues) {
+        throw this.VaryServiceError("checkProductTypeExistanceOnMedusa", {});
+      }
       const foundMedusaTypesValue = medusaTypeValues.find(
         (item) => item.value === value
       );
@@ -1101,11 +1124,14 @@ export default class VaryService extends MedusaService({
   async fetchAllProductTypeFromMedusa(): Promise<MedusaProductType[]> {
     try {
       const medusaProductTypeCount =
-        await this.productService_.listAndCountProductTypes(
+        await this.productService_?.listAndCountProductTypes(
           {},
           { select: ["id"] }
         );
-      const medusaProductTypes = await this.productService_.listProductTypes(
+      if (!medusaProductTypeCount) {
+        throw this.VaryServiceError("fetchAllProductTypeFromMedusa", {});
+      }
+      const medusaProductTypes = await this.productService_?.listProductTypes(
         {},
         { skip: 0, take: medusaProductTypeCount[1] }
       );
@@ -1232,14 +1258,14 @@ export default class VaryService extends MedusaService({
       // Missing image reference in item record - external reference only?
       // Sale and Rental price - same sale channel or different
 
-      var medusaCategoryId: string | null;
+      var medusaCategoryId: string | null = null;
       if (product.idWebCat != null && product.idWebCat != 0) {
         try {
           const category = await this.getCategoryMapping(product.idWebCat, {
             createIfNotFound: true,
           });
           medusaCategoryId = category.medusaId;
-        } catch (error) {
+        } catch (error: any) {
           this.VaryServiceLog(
             VaryLog.WARNING,
             `no record found for id: [${product.idWebCat}] in medusa and vary`
@@ -1400,12 +1426,11 @@ export default class VaryService extends MedusaService({
     value: string
   ): Promise<MedusaProductAssoc> {
     try {
-      const newMedusaProductAssoc: MedusaProductAssoc =
-        await this.createVaryProductAssocs({
-          id: generateEntityId(value, "vit"),
-          name: value,
-        });
-      return newMedusaProductAssoc;
+      const newMedusaProductAssoc = await this.createVaryProductAssocs({
+        id: generateEntityId(value, "vit"),
+        name: value,
+      });
+      return newMedusaProductAssoc as any as MedusaProductAssoc;
     } catch (error) {
       throw this.VaryServiceError("createVaryItemAssocInMedusa", error);
     }
@@ -1423,8 +1448,9 @@ export default class VaryService extends MedusaService({
    */
   async checkVaryItemAssocExistaneOnMedusa(value: string): Promise<boolean> {
     try {
-      const medusaProductAssocs: MedusaProductAssoc[] =
-        await this.listVaryProductAssocs({ name: value });
+      const medusaProductAssocs = await this.listVaryProductAssocs({
+        name: value,
+      });
       const foundMedusaProductAssoc = medusaProductAssocs.find(
         (item) => item.name === value
       );
@@ -1453,13 +1479,14 @@ export default class VaryService extends MedusaService({
     value?: string
   ): Promise<MedusaProductAssoc | null> {
     try {
-      const medusaProductAssocs: MedusaProductAssoc[] =
-        await this.listVaryProductAssocs({ name: value });
+      const medusaProductAssocs = await this.listVaryProductAssocs({
+        name: value,
+      });
       const foundMedusaProductAssoc = medusaProductAssocs.find(
         (item) => item.name === value
       );
       if (foundMedusaProductAssoc) {
-        return foundMedusaProductAssoc;
+        return foundMedusaProductAssoc as any as MedusaProductAssoc;
       } else {
         return null;
       }
@@ -1482,13 +1509,14 @@ export default class VaryService extends MedusaService({
     id?: string
   ): Promise<MedusaProductAssoc> {
     try {
-      const medusaProductAssocs: MedusaProductAssoc[] =
-        await this.listVaryProductAssocs({ name: id });
+      const medusaProductAssocs = await this.listVaryProductAssocs({
+        name: id,
+      });
       const foundMedusaProductAssoc = medusaProductAssocs.find(
         (item) => item.id === id
       );
       if (foundMedusaProductAssoc) {
-        return foundMedusaProductAssoc;
+        return foundMedusaProductAssoc as MedusaProductAssoc;
       } else {
         throw this.VaryServiceError("getOneVaryProductAssocFromMedusa", {
           message: "no record found for provided id",
@@ -1551,7 +1579,7 @@ export default class VaryService extends MedusaService({
           trigger_duration: 10,
           trigger_unit: "minute",
         });
-        return createdConfiguration;
+        return createdConfiguration as any as VarySyncConfiguration;
       }
     } catch (error) {
       throw this.VaryServiceError("getVarySyncConfiguration", error);
