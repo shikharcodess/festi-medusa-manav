@@ -2,8 +2,8 @@ import { createProductsWorkflow } from "@medusajs/medusa/core-flows";
 import { StepResponse } from "@medusajs/framework/workflows-sdk";
 import { Modules } from "@medusajs/framework/utils";
 import { LinkDefinition } from "@medusajs/framework/types";
-import { VARY_MODULES } from "src/modules/vary";
-import VaryService from "src/modules/vary/service";
+import { VARY_MODULES } from "../../modules/vary";
+import VaryService from "../../modules/vary/service";
 
 createProductsWorkflow.hooks.productsCreated(
   async ({ products, additional_data }, { container }) => {
