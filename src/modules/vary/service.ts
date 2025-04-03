@@ -12,6 +12,7 @@ import { MedusaProductAssoc, VaryServiceOptions } from "./utils/types";
 import axios, { AxiosInstance } from "axios";
 import { container } from "@medusajs/framework";
 import {
+  ContainerRegistrationKeys,
   generateEntityId,
   MedusaService,
   Modules,
@@ -1510,7 +1511,7 @@ export default class VaryService extends MedusaService({
   ): Promise<MedusaProductAssoc> {
     try {
       const medusaProductAssocs = await this.listVaryProductAssocs({
-        name: id,
+        id: id,
       });
       const foundMedusaProductAssoc = medusaProductAssocs.find(
         (item) => item.id === id
@@ -1522,6 +1523,29 @@ export default class VaryService extends MedusaService({
           message: "no record found for provided id",
         });
       }
+    } catch (error: any) {
+      throw this.VaryServiceError(
+        "getOneVaryProductAssocFromMedusaById",
+        error
+      );
+    }
+  }
+
+  async getVaryProductAssocFromMedusaByProductId(
+    productId: string
+  ): Promise<MedusaProductAssoc[]> {
+    try {
+      const query = container.resolve(ContainerRegistrationKeys.QUERY);
+      const { data: assocs } = await query.graph({
+        entity: "product_assoc",
+        fields: ["id", "created_at", "updated_at", "name", "rank"],
+        filters: {
+          products: {
+            id: productId,
+          },
+        },
+      });
+      return assocs as MedusaProductAssoc[];
     } catch (error: any) {
       throw this.VaryServiceError(
         "getOneVaryProductAssocFromMedusaById",
