@@ -31,15 +31,10 @@ const VarySync = () => {
 
   const configuration = (data as any)?.configuration;
 
-  if (configuration) {
-    console.log("data", configuration);
-  }
-
   const [formData, setFormData] = useState<VarySyncFormData | null>(null);
 
   useEffect(() => {
     if (configuration) {
-      console.log("configuration", configuration);
       setFormData({
         active: configuration.active,
         trigger_duration: configuration.trigger_duration,
@@ -67,7 +62,6 @@ const VarySync = () => {
       if (!response.ok) {
         throw new Error(data.message || "Something went wrong");
       }
-      console.log(data);
     } catch (error) {
       console.log(error);
       return error;
