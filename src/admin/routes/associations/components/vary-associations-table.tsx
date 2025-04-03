@@ -89,7 +89,7 @@ const VaryAssociationsTable = ({paginationConfig}: {paginationConfig?: {pageSize
     isLoading: loading,
     pagination: { state: pagination, onPaginationChange: setPagination },
     onRowClick: (event, row) => {
-      navigate('/vary-associations/' + row.id);
+      navigate('/associations/' + row.id);
     }
   });
 

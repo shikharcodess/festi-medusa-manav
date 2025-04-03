@@ -1546,6 +1546,7 @@ export default class VaryService extends MedusaService({
         });
       }
     } catch (error: any) {
+      console.error(error)
       throw this.VaryServiceError(
         "getOneVaryProductAssocFromMedusaById",
         error
