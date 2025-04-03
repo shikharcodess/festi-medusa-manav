@@ -8,6 +8,8 @@ import {
   DataTablePaginationState,
 } from "@medusajs/ui";
 
+import { useNavigate } from "react-router-dom";
+
 interface AssociationDataType {
   id: string;
   name: string;
@@ -20,6 +22,7 @@ const VaryAssociationsTable = ({paginationConfig}: {paginationConfig?: {pageSize
   
   const [loading, setLoading] = useState(false);
   const [associations, setAssociations] = useState<AssociationDataType[]>([]);
+  const navigate = useNavigate();
 
   const [pagination, setPagination] = useState<DataTablePaginationState>({
     pageSize: paginationConfig?.pageSize ?? 10,
@@ -85,6 +88,9 @@ const VaryAssociationsTable = ({paginationConfig}: {paginationConfig?: {pageSize
     rowCount: associations.length, // Use actual data length
     isLoading: loading,
     pagination: { state: pagination, onPaginationChange: setPagination },
+    onRowClick: (event, row) => {
+      navigate('/vary-associations/' + row.id);
+    }
   });
 
   return (
