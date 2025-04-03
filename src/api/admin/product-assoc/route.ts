@@ -5,7 +5,7 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
   try {
     const query = req.scope.resolve(ContainerRegistrationKeys.QUERY);
     query.graph({
-      entity: "product_assc",
+      entity: "product_assoc",
       ...req.queryConfig,
       fields: ["id", "created_at", "updated_at", "name", "rank"],
     });

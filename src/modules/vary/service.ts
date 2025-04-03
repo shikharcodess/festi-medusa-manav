@@ -1506,18 +1506,40 @@ export default class VaryService extends MedusaService({
    * @returns A promise that resolves to the found `MedusaProductAssoc` object.
    * @throws Will throw an error if no record is found for the provided ID or if an unexpected error occurs.
    */
-  async getOneVaryProductAssocFromMedusaById(
-    id?: string
-  ): Promise<MedusaProductAssoc> {
+  async getOneVaryProductAssocFromMedusaById(id?: string): Promise<any> {
     try {
       const medusaProductAssocs = await this.listVaryProductAssocs({
         id: id,
       });
+
+      const query = container.resolve(ContainerRegistrationKeys.QUERY);
+      const { data: assocs } = await query.graph({
+        entity: "product_assoc",
+        fields: [
+          "id",
+          "created_at",
+          "updated_at",
+          "name",
+          "rank",
+          "product.id",
+          "products.title",
+          "products.categories.id",
+          "products.categories.name",
+          "products.collection.id",
+          "products.collection.title",
+          "products.variants.id",
+          "products.status",
+        ],
+        filters: {
+          id: id,
+        },
+      });
+
       const foundMedusaProductAssoc = medusaProductAssocs.find(
         (item) => item.id === id
       );
       if (foundMedusaProductAssoc) {
-        return foundMedusaProductAssoc as MedusaProductAssoc;
+        return assocs as any;
       } else {
         throw this.VaryServiceError("getOneVaryProductAssocFromMedusa", {
           message: "no record found for provided id",
@@ -1538,7 +1560,21 @@ export default class VaryService extends MedusaService({
       const query = container.resolve(ContainerRegistrationKeys.QUERY);
       const { data: assocs } = await query.graph({
         entity: "product_assoc",
-        fields: ["id", "created_at", "updated_at", "name", "rank"],
+        fields: [
+          "id",
+          "created_at",
+          "updated_at",
+          "name",
+          "rank",
+          "product.id",
+          "products.title",
+          "products.categories.id",
+          "products.categories.name",
+          "products.collection.id",
+          "products.collection.title",
+          "products.variants.id",
+          "products.status",
+        ],
         filters: {
           products: {
             id: productId,
