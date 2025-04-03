@@ -1,6 +1,7 @@
 import { useParams } from "react-router-dom";
 import { Container, Heading } from "@medusajs/ui";
 import { useEffect, useState } from "react";
+import {Row} from '../components/Row'
 
 interface AssociationDataType {
   id: string;
@@ -58,28 +59,15 @@ const CustomPage = () => {
     <div className="flex flex-col w-full gap-6">
       {/* First Container - Association Details */}
     <Container className="p-6 bg-ui-bg-base shadow-md rounded-lg">
-    <Heading className="text-xl font-semibold mb-4 border-b-[1px] border-slate-700 pb-4">Association Details</Heading>
+    <Heading className="text-xl font-semibold mb-4 border-b-[1px] border-slate-700 pb-4">{association?.name}</Heading>
     {loading ? (
       <p className="text-gray-500">Loading...</p>
     ) : association ? (
-      <div className="flex flex-col gap-2">
-      <div className="grid grid-cols-2 gap-4  text-gray-800 ">
-        <div className="p-3 bg-ui-bg-base rounded-md">
-          <p className="text-md text-gray-100">Name</p>
-          <p className="font-medium text-sm text-gray-100">{association.name}</p>
-        </div>
-
-        <div className="p-3 bg-ui-bg-base rounded-md">
-          <p className="text-sm text-gray-100">Created At</p>
-          <p className="font-medium text-sm text-gray-100">{new Date(association.created_at).toLocaleString()}</p>
-        </div>
-
-        <div className="p-3 bg-ui-bg-base rounded-md">
-          <p className="text-sm text-gray-100">Updated At</p>
-          <p className="font-medium text-sm text-gray-100">{new Date(association.updated_at).toLocaleString()}</p>
-        </div> 
+      <div className="grid grid-cols-2 gap-6 divide-x">
+        <Row title={"Description"} id="" value={association.id}/>
+        <Row title={"Created At"} id="" value={association.created_at}/>
+        <Row title={"Updated At"} id="" value={association.updated_at} />
       </div>
-    </div>
     ) : (
       <p className="text-red-500">No association found.</p>
     )}
@@ -87,7 +75,11 @@ const CustomPage = () => {
 
       <Container className="p-4 bg-ui-bg-base shadow-md rounded-lg">
         <Heading>Associated Products</Heading>
-        
+        {/* <div>
+          {association && (association?.products.map((product: any) => (
+            <Row title={product.title} id={product.id} value={product.id} />
+          )))}
+        </div> */}
       </Container>
     </div>
   );
