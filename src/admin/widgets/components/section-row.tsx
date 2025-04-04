@@ -22,7 +22,7 @@ export const SectionRow = ({ title, id, value, actions }: SectionRowProps) => {
       )}
     >
       <Link
-        to={`/vary-associations/${id}`}
+        to={`/associations/${id}`}
         className="flex items-center gap-2">
         <Text size="small" weight="plus" leading="compact">
           {title}

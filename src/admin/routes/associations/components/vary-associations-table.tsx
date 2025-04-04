@@ -95,7 +95,7 @@ const VaryAssociationsTable = ({paginationConfig}: {paginationConfig?: {pageSize
 
   return (
     <Container className="flex flex-col w-full p-6">
-      <Heading>Vary Associations</Heading>
+      <Heading className="mb-4">Associations</Heading>
       <DataTable instance={table}>
         <DataTable.Table />
         <DataTable.Pagination />

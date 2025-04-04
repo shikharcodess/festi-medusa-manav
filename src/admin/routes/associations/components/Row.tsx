@@ -13,12 +13,9 @@ export const Row = ({ title, id, value, actions }: SectionRowProps) => {
   const isValueString = typeof value === "string" || !value
 
   return (
-    <Link
-        to={`/vary-associations/${id}`}
-        className="flex justify-between w-full">
     <div
       className={clx(
-        `text-ui-fg-subtle grid grid-cols-2 w-full items-center space-x-2 px-6 py-4 cursor-pointer hover:bg-ui-bg-base-hover`,
+        `text-ui-fg-subtle grid grid-cols-2 divide-x w-full items-center space-x-2 px-6 py-4 cursor-pointer hover:bg-ui-bg-base-hover`,
         {
           "grid-cols-[1fr_1fr_28px]": !!actions,
         }
@@ -41,6 +38,5 @@ export const Row = ({ title, id, value, actions }: SectionRowProps) => {
         )}
       {actions && <div>{actions}</div>}
     </div>
-    </Link>
   )
 }
