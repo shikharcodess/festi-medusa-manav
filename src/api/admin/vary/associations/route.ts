@@ -1,6 +1,5 @@
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework";
 import { AdminGetVaryLogsParamsType } from "../validators";
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils";
 import VaryService from "../../../../modules/vary/service";
 import { VARY_MODULES } from "../../../../modules/vary";
 
