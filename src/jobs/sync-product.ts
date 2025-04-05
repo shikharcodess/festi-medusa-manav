@@ -61,6 +61,7 @@ export default async function greetingJob(container: MedusaContainer) {
     );
 
     varyService.setDependencies(productService, orderService, customerService);
+    varyService.useContextContainer(container);
 
     const allVaryProducts = await varyService.pullAllProductFromVary();
     console.log(
@@ -104,7 +105,7 @@ export default async function greetingJob(container: MedusaContainer) {
 
 export const config = {
   name: "vary_medusa_product_sync",
-  // schedule: "* * * * *",
+  schedule: "* * * * *",
   // schedule: "*/10 * * * *",
-  schedule: "*/30 * * * *",
+  // schedule: "*/30 * * * *",
 };

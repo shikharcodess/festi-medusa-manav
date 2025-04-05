@@ -10,7 +10,7 @@ import {
 } from "@medusajs/framework/types";
 import { MedusaProductAssoc, VaryServiceOptions } from "./utils/types";
 import axios, { AxiosInstance } from "axios";
-import { container } from "@medusajs/framework";
+import { MedusaContainer } from "@medusajs/framework";
 import {
   ContainerRegistrationKeys,
   generateEntityId,
@@ -26,7 +26,7 @@ import {
   createProductOptionsWorkflow,
   CreateProductOptionsWorkflowInput,
 } from "@medusajs/medusa/core-flows";
-import { VaryProductAssoc } from "./models/varyItemAssoc";
+import { ProductAssocs } from "./models/varyItemAssoc";
 import { VarySyncConfiguration } from "./models/varySyncConfiguration";
 import { VarySyncLogs } from "./models/varySyncLogs";
 
@@ -333,7 +333,7 @@ interface InternalProductTypeMapping {
  * @returns {Promise<void>}
  */
 export default class VaryService extends MedusaService({
-  VaryProductAssoc,
+  ProductAssocs,
   VarySyncConfiguration,
   VarySyncLogs,
 }) {
@@ -351,6 +351,9 @@ export default class VaryService extends MedusaService({
   private varyOptions: VaryProductOption[] = [];
   private medusaProductTypes: MedusaProductType[] = [];
 
+  private contextContainer?: MedusaContainer;
+  private useContextContainer_: boolean = false;
+
   private isServiceReady_: boolean = false;
   publicMetadata: Record<string, any> = {};
 
@@ -362,6 +365,20 @@ export default class VaryService extends MedusaService({
 
   isServiceReady(): boolean {
     return this.isServiceReady_;
+  }
+
+  useContextContainer(container?: MedusaContainer) {
+    if (container) {
+      this.contextContainer = container;
+      this.useContextContainer_ = true;
+    } else if (this.contextContainer) {
+      this.useContextContainer_ = true;
+    } else {
+      throw this.VaryServiceError(
+        "useContextContainer",
+        "context container is required"
+      );
+    }
   }
 
   /**
@@ -376,12 +393,14 @@ export default class VaryService extends MedusaService({
   setDependencies(
     productService: IProductModuleService,
     orderService: IOrderModuleService,
-    customerService: ICustomerModuleService
+    customerService: ICustomerModuleService,
+    contextContainer?: MedusaContainer
   ) {
     this.productService_ = productService;
     this.orderService_ = orderService;
     this.customerService_ = customerService;
 
+    this.contextContainer = contextContainer;
     this.isServiceReady_ = true;
   }
 
@@ -1403,7 +1422,7 @@ export default class VaryService extends MedusaService({
         ],
       };
 
-      await createProductsWorkflow(container).run({
+      await createProductsWorkflow(this.contextContainer).run({
         input: workflowInput,
       });
     } catch (error) {
@@ -1427,7 +1446,7 @@ export default class VaryService extends MedusaService({
     value: string
   ): Promise<MedusaProductAssoc> {
     try {
-      const newMedusaProductAssoc = await this.createVaryProductAssocs({
+      const newMedusaProductAssoc = await this.createProductAssocs({
         id: generateEntityId(value, "vit"),
         name: value,
       });
@@ -1449,7 +1468,7 @@ export default class VaryService extends MedusaService({
    */
   async checkVaryItemAssocExistaneOnMedusa(value: string): Promise<boolean> {
     try {
-      const medusaProductAssocs = await this.listVaryProductAssocs({
+      const medusaProductAssocs = await this.listProductAssocs({
         name: value,
       });
       const foundMedusaProductAssoc = medusaProductAssocs.find(
@@ -1480,7 +1499,7 @@ export default class VaryService extends MedusaService({
     value?: string
   ): Promise<MedusaProductAssoc | null> {
     try {
-      const medusaProductAssocs = await this.listVaryProductAssocs({
+      const medusaProductAssocs = await this.listProductAssocs({
         name: value,
       });
       const foundMedusaProductAssoc = medusaProductAssocs.find(
@@ -1508,11 +1527,13 @@ export default class VaryService extends MedusaService({
    */
   async getOneVaryProductAssocFromMedusaById(id?: string): Promise<any> {
     try {
-      const medusaProductAssocs = await this.listVaryProductAssocs({
+      const medusaProductAssocs = await this.listProductAssocs({
         id: id,
       });
 
-      const query = container.resolve(ContainerRegistrationKeys.QUERY);
+      const query = this.contextContainer.resolve(
+        ContainerRegistrationKeys.QUERY
+      );
       const { data: assocs } = await query.graph({
         entity: "product_assoc",
         fields: [
@@ -1521,7 +1542,7 @@ export default class VaryService extends MedusaService({
           "updated_at",
           "name",
           "rank",
-          "product.id",
+          "products.id",
           "products.title",
           "products.categories.id",
           "products.categories.name",
@@ -1546,7 +1567,7 @@ export default class VaryService extends MedusaService({
         });
       }
     } catch (error: any) {
-      console.error(error)
+      console.error(error);
       throw this.VaryServiceError(
         "getOneVaryProductAssocFromMedusaById",
         error
@@ -1558,7 +1579,9 @@ export default class VaryService extends MedusaService({
     productId: string
   ): Promise<MedusaProductAssoc[]> {
     try {
-      const query = container.resolve(ContainerRegistrationKeys.QUERY);
+      const query = this.contextContainer.resolve(
+        ContainerRegistrationKeys.QUERY
+      );
       const { data: assocs } = await query.graph({
         entity: "product_assoc",
         fields: [
@@ -1567,7 +1590,7 @@ export default class VaryService extends MedusaService({
           "updated_at",
           "name",
           "rank",
-          "product.id",
+          "products.id",
           "products.title",
           "products.categories.id",
           "products.categories.name",
@@ -1603,11 +1626,11 @@ export default class VaryService extends MedusaService({
    */
   async getAllVaryProductAssocFromMedusa(): Promise<MedusaProductAssoc[]> {
     try {
-      const medusaProductAssocCounts = await this.listAndCountVaryProductAssocs(
+      const medusaProductAssocCounts = await this.listAndCountProductAssocs(
         {},
         { select: ["id"] }
       );
-      const medusaProductAssocs = await this.listVaryProductAssocs(
+      const medusaProductAssocs = await this.listProductAssocs(
         {},
         { skip: 0, take: medusaProductAssocCounts[1] }
       );

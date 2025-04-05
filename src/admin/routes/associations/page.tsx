@@ -6,7 +6,6 @@ import VaryAssociationsTable from "./components/vary-associations-table";
 const VaryAssociations = () => {
   return (
     <>
-      {/* Logs Section */}
       <div className="m-4">
         <Container className="flex flex-col w-full p-6 overflow-hidden">
           <Heading className="pb-4 font-sans font-medium text-lg">

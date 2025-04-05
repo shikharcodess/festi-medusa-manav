@@ -24,6 +24,15 @@
           "nullable": false,
           "mappedType": "text"
         },
+        "rank": {
+          "name": "rank",
+          "type": "integer",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "integer"
+        },
         "metadata": {
           "name": "metadata",
           "type": "jsonb",

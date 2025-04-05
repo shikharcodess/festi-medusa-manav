@@ -17,9 +17,11 @@ interface AssociationDataType {
 
 const columnHelper = createDataTableColumnHelper<AssociationDataType>();
 
-
-const VaryAssociationsTable = ({paginationConfig}: {paginationConfig?: {pageSize: number, pageIndex: number}}) => {
-  
+const VaryAssociationsTable = ({
+  paginationConfig,
+}: {
+  paginationConfig?: { pageSize: number; pageIndex: number };
+}) => {
   const [loading, setLoading] = useState(false);
   const [associations, setAssociations] = useState<AssociationDataType[]>([]);
   const navigate = useNavigate();
@@ -33,16 +35,17 @@ const VaryAssociationsTable = ({paginationConfig}: {paginationConfig?: {pageSize
     columnHelper.display({
       id: "serial_no",
       header: "S/No.",
-      cell: ({ row }) => row.index + 1 + pagination.pageIndex * pagination.pageSize, 
+      cell: ({ row }) =>
+        row.index + 1 + pagination.pageIndex * pagination.pageSize,
     }),
-    columnHelper.accessor("name", { header: "Association Name" })
+    columnHelper.accessor("name", { header: "Association Name" }),
   ];
 
   useEffect(() => {
     const fetchAssociations = async () => {
       setLoading(true);
       try {
-        const response = await fetch('/admin/vary/associations', {
+        const response = await fetch("/admin/vary/associations", {
           method: "GET",
           headers: { "Content-Type": "application/json" },
         });
@@ -63,7 +66,6 @@ const VaryAssociationsTable = ({paginationConfig}: {paginationConfig?: {pageSize
             name: assoc.name,
           }))
         );
-
       } catch (error) {
         console.error("Error fetching associations:", error);
       } finally {
@@ -79,7 +81,7 @@ const VaryAssociationsTable = ({paginationConfig}: {paginationConfig?: {pageSize
       pagination.pageIndex * pagination.pageSize,
       (pagination.pageIndex + 1) * pagination.pageSize
     );
-  }, [pagination, associations]); 
+  }, [pagination, associations]);
 
   const table = useDataTable({
     columns,
@@ -89,13 +91,12 @@ const VaryAssociationsTable = ({paginationConfig}: {paginationConfig?: {pageSize
     isLoading: loading,
     pagination: { state: pagination, onPaginationChange: setPagination },
     onRowClick: (event, row) => {
-      navigate('/associations/' + row.id);
-    }
+      navigate("/associations/" + row.id);
+    },
   });
 
   return (
     <Container className="flex flex-col w-full p-6">
-      <Heading className="mb-4">Associations</Heading>
       <DataTable instance={table}>
         <DataTable.Table />
         <DataTable.Pagination />
