@@ -13,7 +13,7 @@ const ProductAssociationWidget = () => {
   useEffect(() => {
     const fetchAssociations = async () => {
       try {
-        const response = await fetch(`/admin/vary/associations`, {
+        const response = await fetch(`/admin/vary/associations/product/${productId}`, {
           method: "GET",
           headers: { "Content-Type": "application/json" },
         });
@@ -27,11 +27,11 @@ const ProductAssociationWidget = () => {
         if (!jsonResponse.associations) {
           throw new Error("Invalid data format: Missing 'associations' field");
         }
-
+        console.log("product associations",jsonResponse.associations)
         setAssociations(
-          jsonResponse.associations.map((assoc: any) => ({
-            id: assoc.id,
-            name: assoc.name,
+          jsonResponse.associations.map((productAssoc: any) => ({
+            id: productAssoc.product.product_assoc.id,
+            name: productAssoc.product.product_assoc.name,
           }))
         );
 

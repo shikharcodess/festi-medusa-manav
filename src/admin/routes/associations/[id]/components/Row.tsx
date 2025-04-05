@@ -1,6 +1,5 @@
 
 import { Text, clx } from "@medusajs/ui"
-import { Link } from "react-router-dom"
 
 export type SectionRowProps = {
   title: string
@@ -9,7 +8,7 @@ export type SectionRowProps = {
   actions?: React.ReactNode
 }
 
-export const Row = ({ title, id, value, actions }: SectionRowProps) => {
+export const Row = ({ title, value, actions }: SectionRowProps) => {
   const isValueString = typeof value === "string" || !value
 
   return (

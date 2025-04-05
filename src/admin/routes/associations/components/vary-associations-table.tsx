@@ -3,7 +3,6 @@ import {
   createDataTableColumnHelper,
   useDataTable,
   DataTable,
-  Heading,
   Container,
   DataTablePaginationState,
 } from "@medusajs/ui";

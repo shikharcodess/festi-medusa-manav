@@ -1,7 +1,7 @@
 import { useParams } from "react-router-dom";
 import { Container, Heading } from "@medusajs/ui";
 import { useEffect, useState } from "react";
-import { Row } from "../components/Row";
+import { Row } from "./components/Row";
 import {Dropdown} from "./components/Dropdown";
 import ProductsTable from "./components/productTable";
 
@@ -18,43 +18,11 @@ interface ProductDataType {
   title: string;
   categories: { id: string; name: string }[];
   collection: { id: string; title: string };
-  sales_channels: { id: string; name: string }[];
+  sales_channels?: { id: string; name: string }[];
   variants: { id: string }[];
   status: string;
 }
 
-const dummyData: AssociationDataType = {
-  id: "1",
-  name: "Vary Association 1",
-  created_at: "2023-03-01T00:00:00.000Z",
-  updated_at: "2023-03-01T00:00:00.000Z",
-  products: [
-    {
-      id: "101",
-      title: "Product A",
-      categories: [
-        { id: "c1", name: "Category 1" },
-        { id: "c2", name: "Category 2" },
-      ],
-      collection: { id: "col1", title: "Summer Collection" },
-      sales_channels: [
-        { id: "sc1", name: "Online Store" },
-        { id: "sc2", name: "Retail Outlet" },
-      ],
-      variants: [{ id: "v1" }, { id: "v2" }],
-      status: "active",
-    },
-    {
-      id: "102",
-      title: "Product B",
-      categories: [{ id: "c3", name: "Category 3" }],
-      collection: { id: "col2", title: "Winter Collection" },
-      sales_channels: [{ id: "sc3", name: "Wholesale" }],
-      variants: [{ id: "v3" }],
-      status: "inactive",
-    },
-  ],
-};
 
 const CustomPage = () => {
   const { id } = useParams();
@@ -65,7 +33,43 @@ const CustomPage = () => {
     const fetchAssociations = async () => {
       setLoading(true);
       try {
-        setAssociation(dummyData);
+        const response = await fetch(`/admin/vary/associations/${id}`, {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+
+        const jsonResponse = await response.json();
+
+        if (!jsonResponse.association) {
+          throw new Error("Invalid data format: Missing 'association' field");
+        }
+
+        const newData = jsonResponse.association.map((data: AssociationDataType) => (
+          {
+            created_at: data.created_at,
+            id: data.id,
+            name: data.name,
+            updated_at: data.updated_at,
+            products: data.products.map((product: ProductDataType) => ({
+              id: product.id,
+              title: product.title,
+              categories: product.categories.map((category: { id: string; name: string; }) => ({
+                id: category.id,
+                name: category.name,
+              })),
+              collection: product.collection,
+              variants: product.variants.map((variant: { id: string; }) => ({
+                id: variant.id,
+              })),
+              status: product.status,
+            })),
+          }
+        ))
+        setAssociation(newData[0]);
       } catch (error) {
         console.error("Error fetching association:", error);
       } finally {
@@ -79,11 +83,21 @@ const CustomPage = () => {
     <div className="flex flex-col w-full gap-6">
       <Container className="p-6 bg-ui-bg-base shadow-md rounded-lg">
         <Heading className="text-xl font-semibold mb-4 border-b-[1px] border-slate-700 pb-4 flex justify-between">
-          <div>{association?.name}</div>
+          <div>{association?.name || "Association Name"}</div>
           <Dropdown/>
         </Heading>
         {loading ? (
-          <p className="text-gray-500">Loading...</p>
+          <div className="grid grid-cols-2 gap-6">
+            {[...Array(3)].map((_, index) => (
+              <div
+                key={index}
+                className="animate-pulse bg-ui-bg-subtle rounded-md px-6 py-4 space-y-2"
+              >
+                <div className="h-4 w-24 bg-ui-bg-hover rounded" />
+                <div className="h-4 w-48 bg-ui-bg-hover rounded" />
+              </div>
+            ))}
+          </div>
         ) : association ? (
           <div className="grid grid-cols-2 gap-6">
             <Row title="ID" id="" value={association.id} />
@@ -97,7 +111,7 @@ const CustomPage = () => {
 
       <Container className="p-6 bg-ui-bg-base shadow-md rounded-lg">
         <Heading className="text-xl font-semibold mb-4">Association Products</Heading>
-          <ProductsTable/>
+          <ProductsTable association={association}/>
       </Container>
     </div>
   );
