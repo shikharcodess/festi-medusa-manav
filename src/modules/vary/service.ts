@@ -1583,29 +1583,13 @@ export default class VaryService extends MedusaService({
         ContainerRegistrationKeys.QUERY
       );
       const { data: assocs } = await query.graph({
-        entity: "product_assoc",
-        fields: [
-          "id",
-          "created_at",
-          "updated_at",
-          "name",
-          "rank",
-          "products.id",
-          "products.title",
-          "products.categories.id",
-          "products.categories.name",
-          "products.collection.id",
-          "products.collection.title",
-          "products.variants.id",
-          "products.status",
-        ],
+        entity: "product_product_assoc",
+        fields: ["*", "product.*", "product.product_assoc.*"],
         filters: {
-          products: {
-            id: productId,
-          },
+          product_id: productId,
         },
       });
-      return assocs as MedusaProductAssoc[];
+      return assocs as any[];
     } catch (error: any) {
       throw this.VaryServiceError(
         "getOneVaryProductAssocFromMedusaById",
